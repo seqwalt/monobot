@@ -26,13 +26,8 @@ N = sp.Matrix([nx, ny, nyaw, nv, nw, nbw_l, nbw_r])
 #sp.pprint(N)
 
 # Measurement noise
-mx_0, my_0 = sp.symbols('mx_0 my_0')
-mx_1, my_1 = sp.symbols('mx_1 my_1')
-mx_2, my_2 = sp.symbols('mx_2 my_2')
-mx_3, my_3 = sp.symbols('mx_3 my_3')
-mx_4, my_4 = sp.symbols('mx_4 my_4')
-mx_5, my_5 = sp.symbols('mx_5 my_5')
-M = sp.Matrix([mx_0, my_0, mx_1, my_1, mx_2, my_2, mx_3, my_3, mx_4, my_4, mx_5, my_5])
+mi_1, mi_2, mi_3, mi_4, mi_5, mi_6 = sp.symbols('mi_1 mi_2 mi_3 mi_4 mi_5 mi_6')
+M = sp.Matrix([mi_1, mi_2, mi_3, mi_4, mi_5, mi_6])
 MeasNoise = M
 #sp.pprint(M)
 
@@ -44,7 +39,7 @@ U = sp.Matrix([w_r, w_l])
 # Discretized dynamics
 F = ProcNoise + sp.Matrix([ x + dt*v*sp.cos(yaw),
                             y + dt*v*sp.sin(yaw),
-                            yaw + dt*w),
+                            yaw + dt*w,
                             (r/2)*(w_r - bw_r + w_l - bw_l),
                             (r/bl)*(w_r - bw_r - (w_l - bw_l)),
                             bw_l, bw_r,
@@ -56,21 +51,22 @@ F = ProcNoise + sp.Matrix([ x + dt*v*sp.cos(yaw),
 #sp.pprint(F)
 
 # Measurement dynamics for tag i
+x_i, y_i = sp.symbols('x_i y_i')    # position estimate of tag i
 h_i = MeasNoise + sp.Matrix([ sp.cos(yaw)*(x_i - x) + sp.sin(yaw)*(y_i - y),
-                             sp.cos(yaw)*(y_i - y) - sp.sin(yaw)*(x_i - x),
-                             yaw_i_world - yaw,
-                             w*(sp.cos(yaw)*(y_i - y) - sp.sin(yaw)*(x_i - x)) - v,
-                             -w*(sp.cos(yaw)*(x_i - x) + sp.sin(yaw)*(y_i - y)),
-                             -w ])
+                              sp.cos(yaw)*(y_i - y) - sp.sin(yaw)*(x_i - x),
+                              yaw_i_world - yaw,
+                              w*(sp.cos(yaw)*(y_i - y) - sp.sin(yaw)*(x_i - x)) - v,
+                              -w*(sp.cos(yaw)*(x_i - x) + sp.sin(yaw)*(y_i - y)),
+                              -w ])
 #sp.pprint(h)
 
 # ------- Linearization ------- #
 A = F.jacobian(X)
 W = F.jacobian(N)
-H = h.jacobian(X)
-V = h.jacobian(M)
+H_i = h_i.jacobian(X)
+V_i = h_i.jacobian(M)
 
 #sp.pprint(A)
 #sp.pprint(W)
-#sp.pprint(H)
-#sp.pprint(V)
+#sp.pprint(H_i)
+sp.pprint(V_i)
