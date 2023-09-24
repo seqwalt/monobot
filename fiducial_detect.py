@@ -1,12 +1,6 @@
 import time
 import cv2
 from dt_apriltags import Detector
-from adafruit_servokit import ServoKit
-
-#kit = ServoKit(channels=16)
-
-#kit.continuous_servo[7].throttle = 0.1
-#kit.continuous_servo[8].throttle = -0.1
 
 class TagDetect:
     def __init__(self):
