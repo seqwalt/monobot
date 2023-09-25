@@ -3,6 +3,7 @@ import sys
 import numpy as np
 from numpy import sin, cos, sqrt, pi
 from adafruit_servokit import ServoKit
+from kalman_filter import EKF
 
 kit = ServoKit(channels=16)
 
@@ -70,7 +71,7 @@ def main():
         kit.continuous_servo[8].throttle = right_throttle # right wheel
 
         # Tell state estimator control inputs
-        # StateEstInputs(speed, yaw_rate)
+        # EKF.Propagate(speed, yaw_rate)
 
         # Update times
         curr_t = time.time() - start_t
