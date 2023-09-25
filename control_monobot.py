@@ -98,9 +98,9 @@ def main():
         # Printing
         if (curr_t - temp_t > 1.0/print_hz):
             temp_t = curr_t
-            print('Left :  ' + str(left_throttle))
-            print('Right: ' + str(right_throttle))
-            print()
+            #print('Left :  ' + str(left_throttle))
+            #print('Right: ' + str(right_throttle))
+            #print()
 
 if __name__=="__main__":
     try:
