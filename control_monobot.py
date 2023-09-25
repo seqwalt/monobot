@@ -50,7 +50,7 @@ def main():
     base_line = 0.14089 # meters (dist btw wheels)
 
     # ----- Initialization ----- #
-    start_time = time.process_time()
+    start_time = time.time()
     speed = speed_d(0)
     yaw_rate = yaw_rate_d(0)
 
@@ -66,9 +66,10 @@ def main():
         # Get state estimate
 
         # Update control input
-        curr_time = time.process_time() - start_time
+        curr_time = time.time() - start_time
         speed = speed_d(curr_time)
         yaw_rate = yaw_rate_d(curr_time)
+        time.sleep(.01)
 
 if __name__=="__main__":
     try:
