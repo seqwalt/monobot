@@ -69,13 +69,16 @@ def main():
         kit.continuous_servo[7].throttle = left_throttle  # left wheel
         kit.continuous_servo[8].throttle = right_throttle # right wheel
 
+        # Tell state estimator control inputs
+        # StateEstInputs(speed, yaw_rate)
+
         # Update times
         curr_t = time.time() - start_t
         dt = curr_t - prev_t
         prev_t = curr_t
 
         # Get state estimate
-        yaw = np.arctan2(dy_d(curr_t), dx_d(curr_t)) # placeholder
+        yaw_est = np.arctan2(dy_d(curr_t), dx_d(curr_t)) # placeholder
         x_est = x_d(curr_t)   # placeholder
         dx_est = dx_d(curr_t) # placeholder
         y_est = y_d(curr_t)   # placeholder
@@ -85,8 +88,8 @@ def main():
         u1_ = u1(curr_t, x_est, dx_est)
         u2_ = u2(curr_t, y_est, dy_est)
         speed = speed + dt*accel
-        accel = u1_*cos(yaw) + u2_*sin(yaw)
-        yaw_rate = (u2_*cos(yaw) - u1_*sin(yaw))/speed
+        accel = u1_*cos(yaw_est) + u2_*sin(yaw_est)
+        yaw_rate = (u2_*cos(yaw_est) - u1_*sin(yaw_est))/speed
 
         speed = speed_d(curr_t)
         yaw_rate = yaw_rate_d(curr_t)
