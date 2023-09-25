@@ -50,30 +50,49 @@ def main():
     base_line = 0.14089 # meters (dist btw wheels)
 
     # ----- Initialization ----- #
-    start_time = time.time()
+    start_t = time.time()
     speed = speed_d(0)
     yaw_rate = yaw_rate_d(0)
     rate2throttle = np.load('rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
     r2t = rate2throttle.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_spd.py)
-    prev_time = 0
+    curr_t = 0; prev_t = 0; temp_t = 0
+    accel = 0
+    print_hz = 10 # print frequency
 
     # ----- Control Loop ----- #
     while True:
         # Apply control to system
         left_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
         right_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad) # right wheel rate
-        kit.continuous_servo[7].throttle = np.clip(r2t(left_rate), 0, 1)   # left wheel
-        kit.continuous_servo[8].throttle = -np.clip(r2t(right_rate), 0, 1) # right wheel (motor flipped so need minus sign)
+        left_throttle = np.clip(r2t(left_rate), 0, 1)
+        right_throttle = -np.clip(r2t(right_rate), 0, 1) # (-) due to flipped motor
+        kit.continuous_servo[7].throttle = left_throttle  # left wheel
+        kit.continuous_servo[8].throttle = right_throttle # right wheel
+
+        # Update times
+        curr_t = time.time() - start_t
+        dt = curr_t - prev_t
+        prev_t = curr_t
 
         # Get state estimate
+        yaw = np.arctan2(dy_d(curr_t), dx_d(curr_t))  # placeholder
 
-        # Update control input
-        curr_time = time.time() - start_time
-        if (curr_time - prev_time > 1):
-            prev_time = curr_time
-            #print(curr_time)
-        speed = speed_d(curr_time)
-        yaw_rate = yaw_rate_d(curr_time)
+        # Update control input (dynamic feedback linearization)
+        u1_ = u1(curr_t, x_d(curr_t), dx_d(curr_t)) # placeholder
+        u2_ = u2(curr_t, y_d(curr_t), dy_d(curr_t)) # placeholder
+        speed = speed + dt*accel
+        accel = u1_*cos(yaw) + u2_*sin(yaw)
+        yaw_rate = (u2_*cos(yaw) - u1_*sin(yaw))/speed
+
+        speed = speed_d(curr_t)
+        yaw_rate = yaw_rate_d(curr_t)
+
+        # Printing
+        if (curr_t - temp_t > 1.0/print_hz):
+            temp_t = curr_t
+            print('Left :  ' + str(left_throttle))
+            print('Right: ' + str(right_throttle))
+            print()
 
 if __name__=="__main__":
     try:
