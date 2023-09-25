@@ -19,7 +19,7 @@ class TagDetect:
         fy = 606.22
         cx = 314.20
         cy = 240.28
-        sz = 0.10745 # meters
+        sz = 0.10745 # tag size (m)
 
         tags = self.detector.detect(img=gray_img, estimate_tag_pose=True, camera_params=(fx,fy,cx,cy), tag_size=sz)
         tag_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2BGR)
