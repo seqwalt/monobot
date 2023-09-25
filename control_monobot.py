@@ -75,11 +75,15 @@ def main():
         prev_t = curr_t
 
         # Get state estimate
-        yaw = np.arctan2(dy_d(curr_t), dx_d(curr_t))  # placeholder
+        yaw = np.arctan2(dy_d(curr_t), dx_d(curr_t)) # placeholder
+        x_est = x_d(curr_t)   # placeholder
+        dx_est = dx_d(curr_t) # placeholder
+        y_est = y_d(curr_t)   # placeholder
+        dy_est = dy_d(curr_t) # placeholder
 
         # Update control input (dynamic feedback linearization)
-        u1_ = u1(curr_t, x_d(curr_t), dx_d(curr_t)) # placeholder
-        u2_ = u2(curr_t, y_d(curr_t), dy_d(curr_t)) # placeholder
+        u1_ = u1(curr_t, x_est, dx_est)
+        u2_ = u2(curr_t, y_est, dy_est)
         speed = speed + dt*accel
         accel = u1_*cos(yaw) + u2_*sin(yaw)
         yaw_rate = (u2_*cos(yaw) - u1_*sin(yaw))/speed
