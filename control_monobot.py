@@ -53,24 +53,27 @@ def main():
     start_time = time.time()
     speed = speed_d(0)
     yaw_rate = yaw_rate_d(0)
-    r2t = np.load('rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
-    rate2throttle = r2t.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_spd.py)
+    rate2throttle = np.load('rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
+    r2t = rate2throttle.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_spd.py)
+    prev_time = 0
 
     # ----- Control Loop ----- #
     while True:
         # Apply control to system
-        left_whl_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)
-        right_whl_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad)
-        kit.continuous_servo[7].throttle = rate2throttle(left_whl_rate)    # left wheel
-        kit.continuous_servo[8].throttle = -rate2throttle(right_whl_rate)  # right wheel (motor flipped so need minus sign)
+        left_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
+        right_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad) # right wheel rate
+        kit.continuous_servo[7].throttle = np.clip(r2t(left_rate), 0, 1)   # left wheel
+        kit.continuous_servo[8].throttle = -np.clip(r2t(right_rate), 0, 1) # right wheel (motor flipped so need minus sign)
 
         # Get state estimate
 
         # Update control input
         curr_time = time.time() - start_time
+        if (curr_time - prev_time > 1):
+            prev_time = curr_time
+            #print(curr_time)
         speed = speed_d(curr_time)
         yaw_rate = yaw_rate_d(curr_time)
-        time.sleep(.01)
 
 if __name__=="__main__":
     try:
