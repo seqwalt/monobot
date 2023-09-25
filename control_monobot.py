@@ -53,20 +53,31 @@ def main():
     base_line = 0.14089 # meters (dist btw wheels)
 
     # ----- Initialization ----- #
+
+    # Init control and throttle mapping
     speed = speed_d(0)
     yaw_rate = yaw_rate_d(0)
     rate2throttle = np.load('rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
     r2t = rate2throttle.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_spd.py)
     right_rate = left_rate = 0
+
+    # Initial pose estimate. NOTE: Face camera to tag0
     td = TagDetect()
-    EKF = ExtendedKalmanFilter()
     camera = cv2.VideoCapture(0)
     if not camera.isOpened():
         raise RuntimeError('Could not start camera.')
-    start_t = time.time()
+    detect_tag0 = False
+    while (not detect_tag0):
+        _, img = camera.read()    # Read current camera frame
+        tags, _ = td.DetectTags(img) # Detect AprilTag
+        detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
+    EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
+
+    # Init timing
     prev_t = temp_t = 0
     accel = 0
-    print_hz = 10 # print frequency
+    print_hz = 10
+    start_t = time.time()
 
     # ----- Control Loop ----- #
     while True:
@@ -77,8 +88,8 @@ def main():
 
 
         _, img = camera.read()    # Read current camera frame
-        tags = td.DetectTags(img) # Detect AprilTag
-        EKF.ProcessTagData(tags)  # Load tag pose data into EKF
+        tags, detect_time = td.DetectTags(img) # Detect AprilTag
+        EKF.ProcessTagData(tags, detect_time)  # Load tag pose data into EKF
         EKF.Propagate(right_rate, left_rate, dt) # Tell state estimator control inputs
 
         # Apply control to system
