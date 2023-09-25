@@ -52,18 +52,28 @@ start_time = time.process_time()
 speed = speed_d(0)
 yaw_rate = yaw_rate_d(0)
 
-# ----- Control Loop ----- #
-while True:
-    # Apply control to system
-    left_whl_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)
-    right_whl_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad)
-    c_servo = 0.04125 # measured const to convert from rad/s to servo throttle val
-    kit.continuous_servo[7].throttle = c_servo*left_whl_rate    # left wheel
-    kit.continuous_servo[8].throttle = -c_servo*right_whl_rate  # right wheel (motor flipped so need minus sign)
+def main():
+    # ----- Control Loop ----- #
+    while True:
+        # Apply control to system
+        left_whl_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)
+        right_whl_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad)
+        c_servo = 0.04125 # measured const to convert from rad/s to servo throttle val
+        kit.continuous_servo[7].throttle = c_servo*left_whl_rate    # left wheel
+        kit.continuous_servo[8].throttle = -c_servo*right_whl_rate  # right wheel (motor flipped so need minus sign)
 
-    # Get state estimate
+        # Get state estimate
 
-    # Update control input
-    curr_time = time.process_time() - start_time
-    speed = speed_d(curr_time)
-    yaw_rate = yaw_rate_d(curr_time)
+        # Update control input
+        curr_time = time.process_time() - start_time
+        speed = speed_d(curr_time)
+        yaw_rate = yaw_rate_d(curr_time)
+
+if __name__=="__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        # shut off servos
+        kit.continuous_servo[7].throttle = 0
+        kit.continuous_servo[8].throttle = 0
+        exit()
