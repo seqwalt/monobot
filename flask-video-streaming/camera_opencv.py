@@ -2,7 +2,7 @@ import os
 import cv2
 from base_camera import BaseCamera
 import sys
-sys.path.insert(0, '/home/monobot')
+sys.path.insert(0, '/home/monobot/monobot')
 from fiducial_detect import TagDetect
 
 class Camera(BaseCamera):
@@ -29,7 +29,7 @@ class Camera(BaseCamera):
             _, img = camera.read()
 
             #print(img.shape) # width: 640, height: 480
-            tag_data = td.GetTagData(img)
+            tag_data = td.DetectTags(img)
             tag_img = td.GetTagImage(tag_data)
 
             # encode as a jpeg image and return it

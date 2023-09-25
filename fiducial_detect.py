@@ -31,9 +31,9 @@ class TagDetect:
         tag_img = cv2.cvtColor(self.gray_img, cv2.COLOR_GRAY2BGR)
 
         for tag in tags:
-            #print(f"Tag ID: {tag.tag_id}")
+            print(f"Tag ID: {tag.tag_id}")
             #print(f"Tag corners: {tag.corners}")
-            print(f"Tag pose: {tag.pose_t}, {tag.pose_R}")
+            #print(f"Tag pose: {tag.pose_t}, {tag.pose_R}")
 
             cv2.polylines(tag_img, [tag.corners.astype(int)], True, (0, 255, 0), 2)
             for pt in tag.corners:
