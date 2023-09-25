@@ -4,6 +4,8 @@ import numpy as np
 from numpy import sin, cos, sqrt, pi
 from adafruit_servokit import ServoKit
 
+kit = ServoKit(channels=16)
+
 def main():
     # ----- Desired trajectory ----- #
     # See "Squircular Calculations" https://arxiv.org/vc/arxiv/papers/1604/1604.02174v1.pdf
@@ -48,7 +50,6 @@ def main():
     base_line = 0.14089 # meters (dist btw wheels)
 
     # ----- Initialization ----- #
-    kit = ServoKit(channels=16)
     start_time = time.process_time()
     speed = speed_d(0)
     yaw_rate = yaw_rate_d(0)
