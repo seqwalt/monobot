@@ -64,20 +64,6 @@ while True:
     # Get state estimate
 
     # Update control input
-    speed = speed_d(time.process_time - start_time)
-    yaw_rate = yaw_rate_d(time.process_time - start_time)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#
+    curr_time = time.process_time() - start_time
+    speed = speed_d(curr_time)
+    yaw_rate = yaw_rate_d(curr_time)
