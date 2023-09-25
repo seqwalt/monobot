@@ -1,6 +1,6 @@
 import numpy as np
 
-class EKF:
+class ExtendedKalmanFilter:
     def __init__(self):
         # Initialize state
         self.X = np.array([x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3, x_tag_1, y_tag_1, x_tag_2, y_tag_2, x_tag_3, y_tag_3, x_tag_4, y_tag_4, x_tag_5, y_tag_5]).reshape(-1,1)
@@ -80,6 +80,19 @@ class EKF:
             print("Invalid tag number.")
             exit()
         return H_i
+
+    def ProcessTagData(tags):
+        num_tags = len(tags)
+        if (num_tags != 0):
+            z = np.zeros((6*num_tags, 1))
+            for tag in tags:
+                # TODO
+                id = tag.tag_id
+                pose_t = tag.pose_t
+                pose_ind =
+                z[pose_ind]
+                pose_R = tag.pose_R
+            Measurement(z, )
 
     def ProcessDyn(X_):
         x = X_[0]

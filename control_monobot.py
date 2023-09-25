@@ -1,9 +1,10 @@
 import time
 import sys
 import numpy as np
+import cv2
 from numpy import sin, cos, sqrt, pi
 from adafruit_servokit import ServoKit
-from kalman_filter import EKF
+from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
 
 kit = ServoKit(channels=16)
@@ -56,9 +57,14 @@ def main():
     yaw_rate = yaw_rate_d(0)
     rate2throttle = np.load('rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
     r2t = rate2throttle.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_spd.py)
-    #TODO: td = TagDetect()
+    right_rate = left_rate = 0
+    td = TagDetect()
+    EKF = ExtendedKalmanFilter()
+    camera = cv2.VideoCapture(0)
+    if not camera.isOpened():
+        raise RuntimeError('Could not start camera.')
     start_t = time.time()
-    prev_t = 0; temp_t = 0
+    prev_t = temp_t = 0
     accel = 0
     print_hz = 10 # print frequency
 
@@ -69,8 +75,11 @@ def main():
         dt = curr_t - prev_t
         prev_t = curr_t
 
-        # Tell state estimator control inputs
-        # EKF.Propagate(right_rate, left_rate, dt)
+
+        _, img = camera.read()    # Read current camera frame
+        tags = td.DetectTags(img) # Detect AprilTag
+        EKF.ProcessTagData(tags)  # Load tag pose data into EKF
+        EKF.Propagate(right_rate, left_rate, dt) # Tell state estimator control inputs
 
         # Apply control to system
         left_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
