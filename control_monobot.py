@@ -53,15 +53,16 @@ def main():
     start_time = time.time()
     speed = speed_d(0)
     yaw_rate = yaw_rate_d(0)
+    r2t = np.load('rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
+    rate2throttle = r2t.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_spd.py)
 
     # ----- Control Loop ----- #
     while True:
         # Apply control to system
         left_whl_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)
         right_whl_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad)
-        c_servo = 0.04125 # measured const to convert from rad/s to servo throttle val
-        kit.continuous_servo[7].throttle = c_servo*left_whl_rate    # left wheel
-        kit.continuous_servo[8].throttle = -c_servo*right_whl_rate  # right wheel (motor flipped so need minus sign)
+        kit.continuous_servo[7].throttle = rate2throttle(left_whl_rate)    # left wheel
+        kit.continuous_servo[8].throttle = -rate2throttle(right_whl_rate)  # right wheel (motor flipped so need minus sign)
 
         # Get state estimate
 
