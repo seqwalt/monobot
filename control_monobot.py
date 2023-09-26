@@ -6,7 +6,7 @@ from numpy import sin, cos, sqrt, pi
 from adafruit_servokit import ServoKit
 from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
-from flask import Flask, Response
+from flask import Flask, render_template, Response
 
 app = Flask(__name__)
 kit = ServoKit(channels=16)
@@ -138,7 +138,7 @@ def main():
 
 @app.route('/')
 def index():
-    return "Monobot streaming server"
+    return render_template('index.html')
 
 @app.route('/video_feed')
 def video_feed():
