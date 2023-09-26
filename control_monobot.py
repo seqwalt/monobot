@@ -74,6 +74,7 @@ def main():
     while (not detect_tag0):
         _, img = camera.read()    # Read current camera frame
         tags, _ = td.DetectTags(img) # Detect AprilTag
+        yield cv2.imencode('.jpg', td.GetTagImage(tags))[1].tobytes()
         detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
     print('Found tag0!')
     EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
@@ -97,6 +98,9 @@ def main():
         tags, detect_time = td.DetectTags(img) # Detect AprilTag
         EKF.ProcessTagData(tags, detect_time)  # Load tag pose data into EKF
         EKF.Propagate(right_rate, left_rate, dt) # Tell state estimator control inputs
+
+        # Stream tag image
+        yield cv2.imencode('.jpg', td.GetTagImage(tags))[1].tobytes()
 
         # Apply control to system
         left_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
@@ -129,11 +133,6 @@ def main():
         if (curr_t - temp_t > 1.0/print_hz):
             temp_t = curr_t
             #print(dt)
-
-            # Stream tag image at slower rate
-            tag_img = td.GetTagImage(tags)
-            yield cv2.imencode('.jpg', tag_img)[1].tobytes()
-
             # Save to trajectory for analysis
             Traj = np.vstack((Traj, X_est.T))
 
@@ -147,7 +146,7 @@ def video_feed():
 
 if __name__=="__main__":
     try:
-        main()
+        #main()
         app.run(host='0.0.0.0', port=5000)
     except KeyboardInterrupt:
         # shut off servos
