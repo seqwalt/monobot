@@ -37,8 +37,8 @@ try:
     # ----- Initialization ----- #
 
     # Init control and throttle mapping
-    speed = speed_d(0)
-    yaw_rate = yaw_rate_d(0)
+    speed = 0
+    yaw_rate = 0
     rate2throttle = np.load('rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
     r2t = rate2throttle.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_spd.py)
     right_rate = left_rate = 0
