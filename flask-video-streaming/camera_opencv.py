@@ -29,8 +29,8 @@ class Camera(BaseCamera):
             _, img = camera.read()
 
             #print(img.shape) # width: 640, height: 480
-            tag_data = td.DetectTags(img)
-            tag_img = td.GetTagImage(tag_data)
+            tags, _ = td.DetectTags(img)
+            tag_img = td.GetTagImage(tags)
 
             # encode as a jpeg image and return it
             #yield cv2.imencode('.jpg', img)[1].tobytes() # original
