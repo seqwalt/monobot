@@ -8,13 +8,26 @@ from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
 from sshkeyboard import listen_keyboard
 
+sys.path.insert(0, '/home/monobot/monobot/flask-video-streaming')
+from base_camera import BaseCamera
+
 kit = ServoKit(channels=16)
 camera = cv2.VideoCapture('/dev/video0')
 if not camera.isOpened():
     raise RuntimeError('Could not start camera.')
 #Traj = np.nan*np.ones((1,21))
 
-global global_tag_img
+class Camera(BaseCamera):
+    def __init__(self):
+        self.img = np.zeros((height, width), dtype=np.uint8)
+    def get_img(self, img):
+        self.img = img
+    @staticmethod
+    def frames():
+        while True:
+            # encode as a jpeg image and return it
+            yield cv2.imencode('.jpg', self.img)[1].tobytes()
+stream = Camera()
 
 class KeyPress:
     def __init__(self):
@@ -50,8 +63,9 @@ try:
     while (not detect_tag0):
         _, img = camera.read()    # Read current camera frame
         tags, _ = td.DetectTags(img) # Detect AprilTag
-        global_tag_img = td.GetTagImage(tags)
+        stream.get_img(td.GetTagImage(tags))
         detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
+        time.sleep(0.1)
     print('Found tag0!')
     EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
     Traj = EKF.GetEKFState().T
@@ -97,7 +111,7 @@ try:
             # Save to trajectory for analysis
             Traj = np.vstack((Traj, X_est.T))
             # Update stream image
-            global_tag_img = td.GetTagImage(tags)
+            stream.get_img(td.GetTagImage(tags))
 
 except KeyboardInterrupt:
     # shut off servos
