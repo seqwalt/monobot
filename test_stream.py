@@ -8,6 +8,7 @@ from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
 from sshkeyboard import listen_keyboard
 from flask import Flask, render_template, Response
+import threading
 
 kit = ServoKit(channels=16)
 camera = cv2.VideoCapture('/dev/video0')
@@ -20,7 +21,7 @@ class Camera:
         self.img = np.zeros((480, 640), dtype=np.uint8)
     def set_img(self, img):
         self.img = img
-    def gen():
+    def gen(self):
         yield b'--frame\r\n'
         while True:
             frame = cv2.imencode('.jpg', self.img)[1].tobytes()
@@ -37,7 +38,11 @@ def video_feed():
     """Video streaming route. Put this in the src attribute of an img tag."""
     return Response(stream.gen(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
-app.run(host='0.0.0.0', threaded=True)
+#app.run(host='0.0.0.0', threaded=True)
+
+stream_thread = threading.Thread(target=app.run, name="Flask video stream", kwargs={'host': '0.0.0.0', 'threaded': True})
+stream_thread.daemon = True
+stream_thread.start()
 
 class KeyPress:
     def __init__(self):
@@ -75,7 +80,7 @@ try:
         tags, _ = td.DetectTags(img) # Detect AprilTag
         stream.set_img(td.GetTagImage(tags))
         detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
-        time.sleep(0.1)
+        #time.sleep(0.1)
     print('Found tag0!')
     EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
     Traj = EKF.GetEKFState().T
@@ -131,4 +136,7 @@ except KeyboardInterrupt:
     np.savetxt("traj.txt", Traj, fmt='%.5f', delimiter=",")
     # Stop video capture
     camera.release()
+    # Stop streaming thread
+    stream_thread.stop()
+    # Exit the program
     exit()
