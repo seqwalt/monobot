@@ -6,7 +6,7 @@ from adafruit_servokit import ServoKit
 kit = ServoKit(channels=16)
 
 if len(sys.argv) != 2:
-    print('Usage: python3 control_monobot.py <speed>')
+    print('Usage: python3 test_speed.py <speed>')
     exit()
 
 spd = float(sys.argv[1])

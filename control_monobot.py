@@ -6,16 +6,14 @@ from numpy import sin, cos, sqrt, pi
 from adafruit_servokit import ServoKit
 from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
-from flask import Flask, render_template, Response
 
-app = Flask(__name__)
 kit = ServoKit(channels=16)
 camera = cv2.VideoCapture('/dev/video0')
 if not camera.isOpened():
     raise RuntimeError('Could not start camera.')
-Traj = np.nan*np.ones((1,21))
+#Traj = np.nan*np.ones((1,21))
 
-def main():
+try:
     # ----- Desired trajectory ----- #
     # See "Squircular Calculations" https://arxiv.org/vc/arxiv/papers/1604/1604.02174v1.pdf
     a = 4.1148
@@ -45,9 +43,9 @@ def main():
 
     # ----- Dynamic Feedback Linearization ----- #
     # See "Control of Wheeled Mobile Robots: An Experimental Overview" Sec. 5. https://web2.qatar.cmu.edu/~gdicaro/16311-Fall17/slides/control-theory-for-robotics.pdf
-    kpx = 1.0 # control gains
+    kpx = 10.0 # control gains
     kdx = 1.0
-    kpy = 1.0
+    kpy = 10.0
     kdy = 1.0
     def u1(t, x, dx):
         return ddx_d(t) + kpx*(x_d(t) - x) + kdx*(dx_d(t) - dx)
@@ -74,11 +72,10 @@ def main():
     while (not detect_tag0):
         _, img = camera.read()    # Read current camera frame
         tags, _ = td.DetectTags(img) # Detect AprilTag
-        yield cv2.imencode('.jpg', td.GetTagImage(tags))[1].tobytes()
         detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
     print('Found tag0!')
     EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
-    Traj = EKF.GetEKFState()
+    Traj = EKF.GetEKFState().T
 
     # Init timing
     prev_t = temp_t = 0
@@ -98,9 +95,6 @@ def main():
         tags, detect_time = td.DetectTags(img) # Detect AprilTag
         EKF.ProcessTagData(tags, detect_time)  # Load tag pose data into EKF
         EKF.Propagate(right_rate, left_rate, dt) # Tell state estimator control inputs
-
-        # Stream tag image
-        yield cv2.imencode('.jpg', td.GetTagImage(tags))[1].tobytes()
 
         # Apply control to system
         left_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
@@ -136,24 +130,25 @@ def main():
             # Save to trajectory for analysis
             Traj = np.vstack((Traj, X_est.T))
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+except KeyboardInterrupt:
+    # shut off servos
+    kit.continuous_servo[7].throttle = 0
+    kit.continuous_servo[8].throttle = 0
+    # Save last EKF state
+    np.savetxt("traj.txt", Traj, fmt='%.5f', delimiter=",")
+    # Stop video capture
+    camera.release()
+    exit()
 
-@app.route('/video_feed')
-def video_feed():
-    return Response(main(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-if __name__=="__main__":
-    try:
-        #main()
-        app.run(host='0.0.0.0', port=5000)
-    except KeyboardInterrupt:
-        # shut off servos
-        kit.continuous_servo[7].throttle = 0
-        kit.continuous_servo[8].throttle = 0
-        # Save last EKF state
-        np.savetxt("traj.txt", Traj, delimiter=",")
-        # Stop video capture
-        camera.release()
-        exit()
+#if __name__=="__main__":
+#    try:
+#        main()
+#    except KeyboardInterrupt:
+#        # shut off servos
+#        kit.continuous_servo[7].throttle = 0
+#        kit.continuous_servo[8].throttle = 0
+#        # Save last EKF state
+#        np.savetxt("traj.txt", Traj, delimiter=",")
+#        # Stop video capture
+#        camera.release()
+#        exit()

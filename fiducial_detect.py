@@ -44,7 +44,7 @@ class TagDetect:
         for tag in tags:
             if (tag.tag_id == 0):
                 R_TC = tag.pose_R
-                p_TC = tag.pose_t
+                p_TC = tag.pose_t.reshape(-1, 1)
                 detect_tag0 = True
                 break
         else:
@@ -55,15 +55,15 @@ class TagDetect:
         R_CB = np.array([[0, 0, 1],[-1, 0, 0],[0, -1, 0]]) # rotates vectors from cam frame to body frame
         p_CB = np.array((0.0325, 0, 0)).reshape(-1, 1)     # position of camera frame in body frame
         R_WT = np.array([[0, 1, 0],[0, 0, -1],[-1, 0, 0]]) # rotates vectors from world frame to tag0 frame
-        p_WT = np.array((0, 0, 0))                         # tag0 is at the origin
+        p_WT = np.array((0, 0, 0)).reshape(-1, 1)          # tag0 is at the origin
         p_WB = R_CB @ R_TC @ p_WT + R_CB @ p_TC + p_CB
-        R_WB = R_CB @ R_TC @ R_WA
+        R_WB = R_CB @ R_TC @ R_WT
 
         p_BW = -R_WB.T @ p_WB
         R_BW = R_WB.T
 
-        x_est = p_BW[0]
-        y_est = p_BW[1]
+        x_est = p_BW[0,0]
+        y_est = p_BW[1,0]
         yaw_est = np.arctan2(R_BW[1,0], R_BW[0,0]) # assuming only rotation is about z-axis
 
         return (detect_tag0, x_est, y_est, yaw_est)
