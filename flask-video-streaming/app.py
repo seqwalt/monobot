@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 from importlib import import_module
+import sys
 import os
 from flask import Flask, render_template, Response
 
 # import camera driver
 #Camera = import_module('camera_opencv').Camera
-Camera = import_module('../test_stream').Camera
+
+sys.path.insert(0, '/home/monobot/monobot/')
+from test_stream import Camera
 
 # Raspberry Pi camera module (requires picamera package)
 # from camera_pi import Camera

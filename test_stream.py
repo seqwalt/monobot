@@ -19,7 +19,7 @@ if not camera.isOpened():
 
 class Camera(BaseCamera):
     def __init__(self):
-        self.img = np.zeros((height, width), dtype=np.uint8)
+        self.img = np.zeros((480, 640), dtype=np.uint8)
     def get_img(self, img):
         self.img = img
     @staticmethod
