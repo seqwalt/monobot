@@ -6,12 +6,40 @@ from numpy import sin, cos, sqrt, pi
 from adafruit_servokit import ServoKit
 from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
+from flask import Flask, render_template, Response
+import threading
 
 kit = ServoKit(channels=16)
 camera = cv2.VideoCapture('/dev/video0')
 if not camera.isOpened():
     raise RuntimeError('Could not start camera.')
-#Traj = np.nan*np.ones((1,21))
+Traj = np.nan*np.ones((1,21))
+
+class Camera:
+    def __init__(self):
+        self.img = np.zeros((480, 640), dtype=np.uint8)
+    def set_img(self, img):
+        self.img = img
+    def gen(self):
+        yield b'--frame\r\n'
+        while True:
+            frame = cv2.imencode('.jpg', self.img)[1].tobytes()
+            yield b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n--frame\r\n'
+stream = Camera()
+
+app = Flask(__name__)
+@app.route('/')
+def index():
+    """Video streaming home page."""
+    return render_template('index.html')
+@app.route('/video_feed')
+def video_feed():
+    """Video streaming route. Put this in the src attribute of an img tag."""
+    return Response(stream.gen(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+stream_thrd = threading.Thread(target=app.run, name="Flask video stream", kwargs={'host': '0.0.0.0', 'threaded': True})
+stream_thrd.daemon = True
+stream_thrd.start()
 
 try:
     # ----- Desired trajectory ----- #
@@ -72,6 +100,7 @@ try:
     while (not detect_tag0):
         _, img = camera.read()    # Read current camera frame
         tags, _ = td.DetectTags(img) # Detect AprilTag
+        stream.set_img(td.GetTagImage(tags))
         detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
     print('Found tag0!')
     EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
@@ -80,7 +109,7 @@ try:
     # Init timing
     prev_t = temp_t = 0
     accel = 0
-    print_hz = 10
+    print_hz = 20
     start_t = time.time()
 
     # ----- Control Loop ----- #
@@ -124,6 +153,7 @@ try:
         if (curr_t - temp_t > 1.0/print_hz):
             temp_t = curr_t
             #print(dt)
+            stream.set_img(td.GetTagImage(tags))
             # Save to trajectory for analysis
             Traj = np.vstack((Traj, X_est.T))
 

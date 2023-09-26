@@ -38,8 +38,6 @@ def video_feed():
     """Video streaming route. Put this in the src attribute of an img tag."""
     return Response(stream.gen(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
-#app.run(host='0.0.0.0', threaded=True)
-
 stream_thrd = threading.Thread(target=app.run, name="Flask video stream", kwargs={'host': '0.0.0.0', 'threaded': True})
 stream_thrd.daemon = True
 stream_thrd.start()
@@ -90,7 +88,7 @@ try:
 
     # Init timing
     prev_t = temp_t = 0
-    print_hz = 30
+    print_hz = 20
     start_t = time.time()
 
     key_thrd = threading.Thread(target=listen_keyboard, name="keyboard listener", kwargs={'on_press': kp.press})
