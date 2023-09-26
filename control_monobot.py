@@ -120,9 +120,6 @@ try:
         accel = u1_*cos(yaw_est) + u2_*sin(yaw_est)
         yaw_rate = (u2_*cos(yaw_est) - u1_*sin(yaw_est))/speed
 
-        speed = speed_d(curr_t)
-        yaw_rate = yaw_rate_d(curr_t)
-
         # Printing
         if (curr_t - temp_t > 1.0/print_hz):
             temp_t = curr_t
