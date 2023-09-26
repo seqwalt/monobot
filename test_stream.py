@@ -6,9 +6,9 @@ from numpy import sin, cos, sqrt, pi
 from adafruit_servokit import ServoKit
 from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
-from sshkeyboard import listen_keyboard
+from sshkeyboard import listen_keyboard, stop_listening
 from flask import Flask, render_template, Response
-from multiprocessing import Process
+import threading
 
 kit = ServoKit(channels=16)
 camera = cv2.VideoCapture('/dev/video0')
@@ -40,21 +40,24 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 #app.run(host='0.0.0.0', threaded=True)
 
-stream_proc = Process(target=app.run, name="Flask video stream", kwargs={'host': '0.0.0.0', 'threaded': True})
-stream_proc.daemon = True
-stream_proc.start()
+stream_thrd = threading.Thread(target=app.run, name="Flask video stream", kwargs={'host': '0.0.0.0', 'threaded': True})
+stream_thrd.daemon = True
+stream_thrd.start()
 
 class KeyPress:
     def __init__(self):
         self.yaw_rate = 0.0
-    def press(key):
-        rate = np.pi/6
+    def press(self, key):
+        rate = np.pi/2
         if key == "a":
+            print('left turn')
             self.yaw_rate = rate
         elif key == "d":
+            print('right turn')
             self.yaw_rate = -rate
-    def release(key):
-        self.yaw_rate = 0.0
+        elif key == "s":
+            print('stop turning')
+            self.yaw_rate = 0
 kp = KeyPress()
 
 try:
@@ -87,8 +90,14 @@ try:
 
     # Init timing
     prev_t = temp_t = 0
-    print_hz = 10
+    print_hz = 30
     start_t = time.time()
+
+    key_thrd = threading.Thread(target=listen_keyboard, name="keyboard listener", kwargs={'on_press': kp.press})
+    key_thrd.daemon = True
+    key_thrd.start()
+    #listen_keyboard(on_press=kp.press, on_release=kp.release)
+
 
     # ----- Control Loop ----- #
     while True:
@@ -115,13 +124,13 @@ try:
         X_est = EKF.GetEKFState()
 
         # Update control input (user input)
-        listen_keyboard(on_press=kp.press, on_release=kp.release)
-        speed = 0.015
+        speed = 0.3
         yaw_rate = kp.yaw_rate
 
         # Printing/Logging
         if (curr_t - temp_t > 1.0/print_hz):
             temp_t = curr_t
+            #print("Left wheel (rad/s): " + str(left_rate))
             #print(dt)
             # Save to trajectory for analysis
             Traj = np.vstack((Traj, X_est.T))
@@ -136,7 +145,7 @@ except KeyboardInterrupt:
     np.savetxt("traj.txt", Traj, fmt='%.5f', delimiter=",")
     # Stop video capture
     camera.release()
-    # Stop streaming thread
-    stream_proc.terminate()
+    # Stop keyboard listener
+    stop_listening()
     # Exit the program
     exit()
