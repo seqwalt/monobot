@@ -4,7 +4,7 @@ class ExtendedKalmanFilter:
     def __init__(self, x, y, yaw):
         # Initialize state
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3, x_tag_1, y_tag_1, x_tag_2, y_tag_2, x_tag_3, y_tag_3, x_tag_4, y_tag_4, x_tag_5, y_tag_5
-        self.X = np.array([x, y, yaw, 0, 0, 1, 0, 0, 1, 0, 0, x_tag_1, y_tag_1, x_tag_2, y_tag_2, x_tag_3, y_tag_3, x_tag_4, y_tag_4, x_tag_5, y_tag_5]).reshape(-1,1)
+        self.X = np.array([x, y, yaw, 0, 0, 1, 0, 0, 1, 0, 0, 6.40969, -0.6223, 0.635, -1.0795, 3.683, 1.9304, 1.1684, 2.032, 1.71069, -1.0795]).reshape(-1,1)
         # Initialize covariance matrix
         X_sz, _ = self.X.shape
         self.P = np.eye(X_sz)
@@ -84,7 +84,12 @@ class ExtendedKalmanFilter:
             exit()
         return H_i
 
-    def ProcessTagData(tags, detect_time):
+    # Get current EKF state
+    def GetEKFState(self):
+        return self.X
+
+    # Get measurments ready EKF measurment step
+    def ProcessTagData(self, tags, detect_time):
         num_tags = len(tags)
         if (num_tags != 0):
             tag_ids = -1*np.ones(num_tags)
@@ -115,7 +120,7 @@ class ExtendedKalmanFilter:
 
                 # Velocity and Yaw rate of Tag frame in Body frame
                 tag_name = 'tag'+str(tag.tag_id)
-                if (len(self.prev_tag_data[tag_name]) == 0)
+                if (len(self.prev_tag_data[tag_name]) == 0):
                     # tag had no measurement at previous time step
                     have_full_measurement = False
                 else:
@@ -154,7 +159,7 @@ class ExtendedKalmanFilter:
             # No visible tags, reset prev_tag_data dict
             self.prev_tag_data = {'t':[], 'tag0':[], 'tag1':[], 'tag2':[], 'tag3':[], 'tag4':[], 'tag5':[]}
 
-    def ProcessDyn(X_):
+    def ProcessDyn(self, X_):
         x = X_[0]
         y = X_[1]
         yaw = X_[2]
@@ -168,7 +173,7 @@ class ExtendedKalmanFilter:
         dX = np.array(([dx, dy, dyaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])).reshape(-1,1)
         return dX
 
-    def MeasureDyn_i(tag_id):
+    def MeasureDyn_i(self, tag_id):
         if (tag_id == 0):
             x_tag = 0
             y_tag = 0
@@ -177,15 +182,15 @@ class ExtendedKalmanFilter:
             x_tag = self.X[9 + 2*tag_id]
             y_tag = self.X[10 + 2*tag_id]
             if (tag_id == 1):
-                #TODO yaw_tag =
+                yaw_tag = np.pi
             elif (tag_id == 2):
-                #TODO yaw_tag =
+                yaw_tag = np.pi/2
             elif (tag_id == 3):
-                #TODO yaw_tag =
+                yaw_tag = -np.pi/2
             elif (tag_id == 4):
-                #TODO yaw_tag =
+                yaw_tag = 0
             elif (tag_id == 5):
-                #TODO yaw_tag =
+                yaw_tag = np.pi/2
         x = self.X[0]
         y = self.X[1]
         yaw = self.X[2]
@@ -215,16 +220,16 @@ class ExtendedKalmanFilter:
         self.X[4] = (whl_rad/base_line)*(w_r_true - w_l_true) # update yaw_rate
 
         # RK-4 propagation
-        k1 = ProcessDyn(X)
-        k2 = ProcessDyn(X+dt/2*k1)
-        k3 = ProcessDyn(X+dt/2*k2)
-        k4 = ProcessDyn(X+dt*k3)
+        k1 = ProcessDyn(self.X)
+        k2 = ProcessDyn(self.X+dt/2*k1)
+        k3 = ProcessDyn(self.X+dt/2*k2)
+        k4 = ProcessDyn(self.X+dt*k3)
         k = (k1+2*k2+2*k3+k4)/6
-        X = X + dt*k
+        self.X = self.X + dt*k
 
         # Propogate error covariance
-        yaw = X[2]
-        speed = X[3]
+        yaw = self.X[2]
+        speed = self.X[3]
         A = A_func(dt, np.sin(yaw), np.cos(yaw), speed, whl_rad, wr, wl, base_line)
         W = W_func()
         Q = Q_func()

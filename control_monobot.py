@@ -6,8 +6,14 @@ from numpy import sin, cos, sqrt, pi
 from adafruit_servokit import ServoKit
 from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
+from flask import Flask, Response
 
+app = Flask(__name__)
 kit = ServoKit(channels=16)
+camera = cv2.VideoCapture('/dev/video0')
+if not camera.isOpened():
+    raise RuntimeError('Could not start camera.')
+Traj = np.nan*np.ones((1,21))
 
 def main():
     # ----- Desired trajectory ----- #
@@ -63,15 +69,15 @@ def main():
 
     # Initial pose estimate. NOTE: Face camera to tag0
     td = TagDetect()
-    camera = cv2.VideoCapture(0)
-    if not camera.isOpened():
-        raise RuntimeError('Could not start camera.')
     detect_tag0 = False
+    print('\nLooking for tag0...')
     while (not detect_tag0):
         _, img = camera.read()    # Read current camera frame
         tags, _ = td.DetectTags(img) # Detect AprilTag
         detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
+    print('Found tag0!')
     EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
+    Traj = EKF.GetEKFState()
 
     # Init timing
     prev_t = temp_t = 0
@@ -86,7 +92,7 @@ def main():
         dt = curr_t - prev_t
         prev_t = curr_t
 
-
+        # EKF Steps
         _, img = camera.read()    # Read current camera frame
         tags, detect_time = td.DetectTags(img) # Detect AprilTag
         EKF.ProcessTagData(tags, detect_time)  # Load tag pose data into EKF
@@ -101,11 +107,13 @@ def main():
         kit.continuous_servo[8].throttle = right_throttle # right wheel
 
         # Get state estimate
-        yaw_est = np.arctan2(dy_d(curr_t), dx_d(curr_t)) # placeholder
-        x_est = x_d(curr_t)   # placeholder
-        dx_est = dx_d(curr_t) # placeholder
-        y_est = y_d(curr_t)   # placeholder
-        dy_est = dy_d(curr_t) # placeholder
+        X_est = EKF.GetEKFState()
+        x_est = X_est[0]
+        y_est = X_est[1]
+        yaw_est = X_est[2]
+        true_spd_est = X_est[3]
+        dx_est = true_spd_est*np.cos(yaw_est) # estimated for control law
+        dy_est = true_spd_est*np.sin(yaw_est) # estimated for control law
 
         # Update control input (dynamic feedback linearization)
         u1_ = u1(curr_t, x_est, dx_est)
@@ -120,13 +128,33 @@ def main():
         # Printing
         if (curr_t - temp_t > 1.0/print_hz):
             temp_t = curr_t
-            print(dt)
+            #print(dt)
+
+            # Stream tag image at slower rate
+            tag_img = td.GetTagImage(tags)
+            yield cv2.imencode('.jpg', tag_img)[1].tobytes()
+
+            # Save to trajectory for analysis
+            Traj = np.vstack((Traj, X_est.T))
+
+@app.route('/')
+def index():
+    return "Monobot streaming server"
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(main(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__=="__main__":
     try:
         main()
+        app.run(host='0.0.0.0', port=5000)
     except KeyboardInterrupt:
         # shut off servos
         kit.continuous_servo[7].throttle = 0
         kit.continuous_servo[8].throttle = 0
+        # Save last EKF state
+        np.savetxt("traj.txt", Traj, delimiter=",")
+        # Stop video capture
+        camera.release()
         exit()
