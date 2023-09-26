@@ -8,13 +8,13 @@ from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
 from sshkeyboard import listen_keyboard
 from flask import Flask, render_template, Response
-import threading
+from multiprocessing import Process
 
 kit = ServoKit(channels=16)
 camera = cv2.VideoCapture('/dev/video0')
 if not camera.isOpened():
     raise RuntimeError('Could not start camera.')
-#Traj = np.nan*np.ones((1,21))
+Traj = np.nan*np.ones((1,21))
 
 class Camera:
     def __init__(self):
@@ -40,9 +40,9 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 #app.run(host='0.0.0.0', threaded=True)
 
-stream_thread = threading.Thread(target=app.run, name="Flask video stream", kwargs={'host': '0.0.0.0', 'threaded': True})
-stream_thread.daemon = True
-stream_thread.start()
+stream_proc = Process(target=app.run, name="Flask video stream", kwargs={'host': '0.0.0.0', 'threaded': True})
+stream_proc.daemon = True
+stream_proc.start()
 
 class KeyPress:
     def __init__(self):
@@ -137,6 +137,6 @@ except KeyboardInterrupt:
     # Stop video capture
     camera.release()
     # Stop streaming thread
-    stream_thread.stop()
+    stream_proc.terminate()
     # Exit the program
     exit()
