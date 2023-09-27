@@ -16,17 +16,9 @@ import threading
 # -------------------- Flask setup -------------------- #
 class PlotTrajectory:
     def __init__(self):
-        self.ref_x, self.ref_y = self.init_ref_traj()
         self.fig, self.ax = plt.subplots()
-        self.img = None
-    def init_ref_traj(self):
-        # reference trajectory data
-        t = np.linspace(0,T,200)
-        X = x_d(t).reshape(-1,1)
-        Y = y_d(t).reshape(-1,1)
-        return (X, Y)
+        self.img = np.zeros((480, 640), dtype=np.uint8)
     def set_plot(self, traj, yaw):
-        self.ax.plot(self.ref_x, self.ref_y, 'g', label='Reference', zorder=0)
         self.ax.plot(traj[:,0], traj[:,1], 'b', linewidth=2, label='Trajectory', zorder=5)
         curr_x = traj[-1,0]
         curr_y = traj[-1,1]
@@ -39,8 +31,8 @@ class PlotTrajectory:
         self.ax.set_title('Trajectory')
         self.ax.set_xlabel('x (m)')
         self.ax.set_ylabel('y (m)')
-        self.ax.set_xlim(0, 8.3)
-        self.ax.set_ylim(-1.2, 3.5)
+        #self.ax.set_xlim(0, 8.3)
+        #self.ax.set_ylim(-1.2, 3.5)
         self.ax.set_aspect('equal')
         self.ax.legend()
         img = io.BytesIO()
@@ -143,7 +135,7 @@ try:
 
     # Init timing
     prev_t = temp_t = 0
-    print_hz = 20
+    print_hz = 10
     start_t = time.time()
 
     key_thrd = threading.Thread(target=listen_keyboard, name="keyboard listener", kwargs={'on_press': kp.press})
@@ -158,10 +150,23 @@ try:
         dt = curr_t - prev_t
         prev_t = curr_t
 
-        # EKF Steps
-        _, img = camera.read()    # Read current camera frame
-        tags, detect_time = td.DetectTags(img) # Detect AprilTag
-        EKF.ProcessTagData(tags, detect_time)  # Load tag pose data into EKF
+        # Printing/Logging/EKF Measurement
+        if (curr_t - temp_t > 1.0/print_hz):
+            temp_t = curr_t
+            #print("Left wheel (rad/s): " + str(left_rate))
+            #print(dt)
+            # EKF Measurement Step
+            _, img = camera.read()    # Read current camera frame
+            tags, detect_time = td.DetectTags(img) # Detect AprilTag
+            EKF.ProcessTagData(tags, detect_time)  # Load tag pose data into EKF
+            # Save to trajectory for analysis
+            Traj = np.vstack((Traj, X_est.T))
+            # Update plot stream
+            plt_stream.set_plot(Traj[:,0:2], yaw_est)
+            # Update camera stream
+            cam_stream.set_img(td.GetTagImage(tags))
+
+        # EKF Propagation Step
         EKF.Propagate(right_rate, left_rate, dt) # Tell state estimator control inputs
 
         # Apply control to system
@@ -179,18 +184,6 @@ try:
         # Update control input (user input)
         speed = 0.3
         yaw_rate = kp.yaw_rate
-
-        # Printing/Logging
-        if (curr_t - temp_t > 1.0/print_hz):
-            temp_t = curr_t
-            #print("Left wheel (rad/s): " + str(left_rate))
-            #print(dt)
-            # Save to trajectory for analysis
-            Traj = np.vstack((Traj, X_est.T))
-            # Update plot stream
-            plt_stream.set_plot(Traj[:,0:2], yaw_est)
-            # Update camera stream
-            cam_stream.set_img(td.GetTagImage(tags))
 
 except KeyboardInterrupt:
     # shut off servos
