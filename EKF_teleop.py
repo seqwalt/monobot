@@ -8,13 +8,52 @@ from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
 from sshkeyboard import listen_keyboard, stop_listening
 from flask import Flask, render_template, Response
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from matplotlib import pyplot as plt
+import io
 import threading
 
-kit = ServoKit(channels=16)
-camera = cv2.VideoCapture('/dev/video0')
-if not camera.isOpened():
-    raise RuntimeError('Could not start camera.')
-Traj = np.nan*np.ones((1,21))
+# -------------------- Flask setup -------------------- #
+class PlotTrajectory:
+    def __init__(self):
+        self.ref_x, self.ref_y = self.init_ref_traj()
+        self.fig, self.ax = plt.subplots()
+        self.img = None
+    def init_ref_traj(self):
+        # reference trajectory data
+        t = np.linspace(0,T,200)
+        X = x_d(t).reshape(-1,1)
+        Y = y_d(t).reshape(-1,1)
+        return (X, Y)
+    def set_plot(self, traj, yaw):
+        self.ax.plot(self.ref_x, self.ref_y, 'g', label='Reference', zorder=0)
+        self.ax.plot(traj[:,0], traj[:,1], 'b', linewidth=2, label='Trajectory', zorder=5)
+        curr_x = traj[-1,0]
+        curr_y = traj[-1,1]
+        arrow_len = 0.1
+        tip = np.array(([cos(yaw), -sin(yaw)],[sin(yaw), cos(yaw)])) @ np.array((arrow_len,0)).reshape(-1,1)
+        plt.arrow(curr_x, curr_y, tip[0,0], tip[1,0], width=0,
+                  length_includes_head=True, head_width=0.3,
+                  head_starts_at_zero=True, color='k', label='Pose',zorder=10)
+        self.ax.plot(curr_x, curr_y, 'bo', markersize=4, zorder=15)
+        self.ax.set_title('Trajectory')
+        self.ax.set_xlabel('x (m)')
+        self.ax.set_ylabel('y (m)')
+        self.ax.set_xlim(0, 8.3)
+        self.ax.set_ylim(-1.2, 3.5)
+        self.ax.set_aspect('equal')
+        self.ax.legend()
+        img = io.BytesIO()
+        canvas = FigureCanvasAgg(self.fig)
+        canvas.draw()
+        buf = canvas.buffer_rgba()
+        self.img = np.asarray(buf) # convert to a NumPy array
+        plt.cla()
+    def gen(self):
+        yield b'--frame\r\n'
+        while True:
+            frame = cv2.imencode('.jpg', self.img)[1].tobytes()
+            yield b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n--frame\r\n'
 
 class Camera:
     def __init__(self):
@@ -26,9 +65,11 @@ class Camera:
         while True:
             frame = cv2.imencode('.jpg', self.img)[1].tobytes()
             yield b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n--frame\r\n'
-stream = Camera()
 
+plt_stream = PlotTrajectory()
+cam_stream = Camera()
 app = Flask(__name__)
+
 @app.route('/')
 def index():
     """Video streaming home page."""
@@ -36,8 +77,16 @@ def index():
 @app.route('/video_feed')
 def video_feed():
     """Video streaming route. Put this in the src attribute of an img tag."""
-    return Response(stream.gen(),
+    return Response(cam_stream.gen(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/plot_feed')
+def plot_feed():
+    """Plotly streaming route"""
+    return Response(plt_stream.gen(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+# -------------------- Done Flask setup -------------------- #
+
 stream_thrd = threading.Thread(target=app.run, name="Flask video stream", kwargs={'host': '0.0.0.0', 'threaded': True})
 stream_thrd.daemon = True
 stream_thrd.start()
@@ -57,6 +106,12 @@ class KeyPress:
             print('stop turning')
             self.yaw_rate = 0
 kp = KeyPress()
+
+kit = ServoKit(channels=16)
+camera = cv2.VideoCapture('/dev/video0')
+if not camera.isOpened():
+    raise RuntimeError('Could not start camera.')
+Traj = np.nan*np.ones((1,21))
 
 try:
     # ----- Vehicle Parameters ----- #
@@ -79,7 +134,7 @@ try:
     while (not detect_tag0):
         _, img = camera.read()    # Read current camera frame
         tags, _ = td.DetectTags(img) # Detect AprilTag
-        stream.set_img(td.GetTagImage(tags))
+        cam_stream.set_img(td.GetTagImage(tags))
         detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
         #time.sleep(0.1)
     print('Found tag0!')
@@ -94,7 +149,6 @@ try:
     key_thrd = threading.Thread(target=listen_keyboard, name="keyboard listener", kwargs={'on_press': kp.press})
     key_thrd.daemon = True
     key_thrd.start()
-    #listen_keyboard(on_press=kp.press, on_release=kp.release)
 
 
     # ----- Control Loop ----- #
@@ -120,6 +174,7 @@ try:
 
         # Get state estimate
         X_est = EKF.GetEKFState()
+        yaw_est = X_est[2,0]
 
         # Update control input (user input)
         speed = 0.3
@@ -132,8 +187,10 @@ try:
             #print(dt)
             # Save to trajectory for analysis
             Traj = np.vstack((Traj, X_est.T))
-            # Update stream image
-            stream.set_img(td.GetTagImage(tags))
+            # Update plot stream
+            plt_stream.set_plot(Traj[:,0:2], yaw_est)
+            # Update camera stream
+            cam_stream.set_img(td.GetTagImage(tags))
 
 except KeyboardInterrupt:
     # shut off servos
