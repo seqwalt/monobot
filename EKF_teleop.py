@@ -130,8 +130,9 @@ try:
         EKF.Propagate(right_rate, left_rate, dt) # Tell state estimator control inputs
 
         # Apply control to system
-        left_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
-        right_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad) # right wheel rate
+        scale_rate = 0.65 # determined from running the EKF (cr1 and cl1 we both around 0.6 to 0.7)
+        left_rate = (1/scale_rate)*(2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
+        right_rate = (1/scale_rate)*(2*speed + yaw_rate*base_line)/(2*whl_rad) # right wheel rate
         left_throttle = np.clip(r2t(left_rate), 0, 1)
         right_throttle = -np.clip(r2t(right_rate), 0, 1) # (-) due to flipped motor
         kit.continuous_servo[7].throttle = left_throttle  # left wheel
