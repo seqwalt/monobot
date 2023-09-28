@@ -12,10 +12,9 @@ class TagDetect:
                                  refine_edges=1,
                                  decode_sharpening=0.25,
                                  debug=0)
-        self.gray_img = np.zeros((640,480), np.uint8)
 
     def DetectTags(self, color_img):
-        self.gray_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2GRAY)
+        gray_img = cv2.cvtColor(color_img, cv2.COLOR_BGR2GRAY)
 
         fx = 606.55
         fy = 606.22
@@ -23,13 +22,13 @@ class TagDetect:
         cy = 240.28
         sz = 0.10745 # tag size (m)
 
-        tags = self.detector.detect(img=self.gray_img, estimate_tag_pose=True, camera_params=(fx,fy,cx,cy), tag_size=sz)
+        tags = self.detector.detect(img=gray_img, estimate_tag_pose=True, camera_params=(fx,fy,cx,cy), tag_size=sz)
         detect_time = time.time()
 
-        return (tags, detect_time)
+        return (tags, detect_time, gray_img)
 
-    def GetTagImage(self, tags):
-        tag_img = cv2.cvtColor(self.gray_img, cv2.COLOR_GRAY2BGR)
+    def GetTagImage(self, tags, gray_img):
+        tag_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2BGR)
 
         for tag in tags:
             cv2.polylines(tag_img, [tag.corners.astype(int)], True, (0, 255, 0), 2)

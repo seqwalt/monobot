@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 test_speed.py 0
+python3 tests/test_speed.py 0
