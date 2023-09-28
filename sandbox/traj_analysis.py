@@ -63,16 +63,18 @@ axes2[1].set_xlabel('Time')
 axes2[1].legend()
 
 # Create Figure 3 with subplots
-fig3, axes3 = plt.subplots(nrows=5, ncols=1, figsize=(8, 18))
+fig3, axes3 = plt.subplots(nrows=2, ncols=1, figsize=(8, 18))
 fig3.suptitle('Tag Positions')
 
-# Subplots 1 to 5
+# Subplots 1 and 2
 for i in range(5):
-    axes3[i].plot(data[f'x_tag_{i + 1}'], label=f'X_TAG_{i + 1}')
-    axes3[i].plot(data[f'y_tag_{i + 1}'], label=f'Y_TAG_{i + 1}')
-    axes3[i].set_ylabel('Tag Positions')
-    axes3[i].legend()
-axes3[4].set_xlabel('Time')
+    axes3[0].plot(data[f'x_tag_{i + 1}'], label=f'X_TAG_{i + 1}')
+    axes3[0].set_ylabel('Tag x positions')
+    axes3[1].plot(data[f'y_tag_{i + 1}'], label=f'Y_TAG_{i + 1}')
+    axes3[1].set_ylabel('Tag y positions')
+axes3[0].legend()
+axes3[1].legend()
+axes3[1].set_xlabel('Time')
 
 # Adjust layout and display figures
 plt.tight_layout()
