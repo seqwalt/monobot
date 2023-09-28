@@ -86,6 +86,8 @@ key_thrd = threading.Thread(target=listen_keyboard, name="keyboard listener", kw
 key_thrd.daemon = True
 key_thrd.start()
 yaw_rate = 0
+tag_row = np.empty((0,13), float) # time, R[0,0], ..., R[2,2], t1, t2, t3
+Tags = {'tag0':tag_row, 'tag1':tag_row, 'tag2':tag_row, 'tag3':tag_row, 'tag4':tag_row, 'tag5':tag_row}
 
 # Init timing
 prev_t = temp_t = 0
@@ -109,8 +111,16 @@ try:
             _, img = camera.read()    # Read current camera frame
             tags, detect_time, gray_img = td.DetectTags(img) # Detect AprilTag
             EKF.ProcessTagData(tags, detect_time)  # Load tag pose data into EKF
-            # Save to trajectory for analysis
+            # Save trajectory for analysis
             Traj = np.vstack((Traj, X_est.T))
+            # Save tags for analysis
+            for (tag in tags):
+                tag_id = tag.tag_id
+                pose_t = tag.pose_t.reshape(-1, 1)
+                pose_R = tag.pose_R
+                pose_flat = np.hstack(( tag.pose_R.reshape(1,-1), tag.pose_t.reshape(1,-1) ))[0] # recover R with (pose_flat[0:9]).reshape(3,3) and t with (pose_flat[9:]).reshape(-1,1)
+                tag_name = 'tag' + str(tag_id)
+                Tags[tag_id] = np.vstack((Tags[tag_id], np.hstack((detect_time, pose_flat)) ))
             # Update plot stream
             plt_stream.set_plot(X_est[0,0], X_est[1,0], X_est[2,0])
             # Update camera stream
@@ -142,8 +152,10 @@ except KeyboardInterrupt:
     # shut off servos
     kit.continuous_servo[7].throttle = 0
     kit.continuous_servo[8].throttle = 0
-    # Save last EKF state
-    np.savetxt("traj.txt", Traj, fmt='%.5f', delimiter=",")
+    # Save EKF states and tag detections
+    np.savetxt("logs/traj.txt", Traj, fmt='%.5f', delimiter=",")
+    for (i in range(6)):
+        np.savetxt("logs/tag"+str(i)+".txt", Tags['tag'+str(i)], fmt='%.5f', delimiter=",")
     # Stop video capture
     camera.release()
     # Stop keyboard listener

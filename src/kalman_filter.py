@@ -26,7 +26,8 @@ class ExtendedKalmanFilter:
         return np.vstack((W_top, W_bot))
 
     def Q_func(self):
-        Q_diag = 0.1*np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+        # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3
+        Q_diag = 0.1*np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
         return np.diag(Q_diag)
 
     # H_i matrix for tag i
@@ -273,13 +274,13 @@ class ExtendedKalmanFilter:
                 # first iteration
                 H = self.H_i_func(x, y, np.sin(yaw), np.cos(yaw), yaw_rate, tag_id, x_tag, y_tag)
                 MeasDyn = self.MeasureDyn_i(tag_id)
-                R_diag = 0.1*tag_dist*np.ones(6)
+                R_diag = 0.08 + 0.02*tag_dist*np.ones(6)
             else:
                 H_i = self.H_i_func(x, y, np.sin(yaw), np.cos(yaw), yaw_rate, tag_id, x_tag, y_tag)
                 H = np.vstack((H, H_i))
                 MeasDyn_i = self.MeasureDyn_i(tag_id)
                 MeasDyn = np.vstack((MeasDyn, MeasDyn_i))
-                R_diag_i = 0.1*tag_dist*np.ones(6)
+                R_diag_i = 0.08 + 0.02*tag_dist*np.ones(6)
                 R_diag = np.hstack((R_diag, R_diag_i))
             iter += 1
 
