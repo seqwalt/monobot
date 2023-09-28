@@ -9,11 +9,7 @@ if len(sys.argv) != 2:
 
 # Define the CSV file path
 csv_file = sys.argv[1]
-tag_id = int(csv_file[3])
-if (tag_id != 0):
-    print("Currently only for tag 0")
-    sys.exit()
-print("\n---- Log data for tag " + str(tag_id) + " ----\n")
+print("\n---- Log data for tag " + csv_file + " ----\n")
 
 # load data
 tag_data = genfromtxt(csv_file, delimiter=',')
