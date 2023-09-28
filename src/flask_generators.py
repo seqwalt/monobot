@@ -7,6 +7,10 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib import pyplot as plt
 from fiducial_detect import TagDetect
 
+import json
+import plotly
+from plotly.graph_objs import Scatter, Layout
+
 class Camera:
     def __init__(self, frame_queue):
         self.frame_queue = frame_queue
@@ -38,7 +42,21 @@ class TagImage:
             frame = cv2.imencode('.jpg', tag_img)[1].tobytes()
             yield b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n--frame\r\n'
 
-class PlotTrajectory:
+class PlotlyTrajectory:
+    def __init__(self, plotly_queue):
+        self.plotly_queue = plotly_queue
+    def set_plot(self, x, y, yaw):
+        pose = (x, y, yaw)
+        if (not self.plotly_queue.full()): # check if queue has room for an img
+            self.plotly_queue.put_nowait(pose)     # put img in queue
+    def gen(self):
+        while True:
+            x, y, yaw = self.plotly_queue.get()
+            pose_dict = {'x': x, 'y': y, 'yaw': yaw}
+            json_data = json.dumps(pose_dict)
+            yield f'data: {json_data}\n\n'
+
+class MatplotlibTrajectory:
     def __init__(self, frame_queue,
                        x_ref=None, y_ref=None,
                        x_lim=None, y_lim=None):

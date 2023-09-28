@@ -10,7 +10,7 @@ from perlin_noise import generate_perlin_noise_2d
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../src')
 from fiducial_detect import TagDetect
-from flask_generators import PlotTrajectory, TagImage
+from flask_generators import PlotlyTrajectory, TagImage
 
 # Reference trajectory
 a = 4.1148
@@ -30,17 +30,18 @@ plt_queue = multiprocessing.Queue(maxsize=max_queue_sz)
 cam_queue = multiprocessing.Queue(maxsize=max_queue_sz)
 tags_queue = multiprocessing.Queue(maxsize=max_queue_sz)
 
-t = np.linspace(0,T,200)
-plt_stream = PlotTrajectory(plt_queue,
-                            x_ref=x_d(t), y_ref=y_d(t),
-                            x_lim=(0, 8.3), y_lim=(-1.2, 3.5))
+# t = np.linspace(0,T,200)
+# plt_stream = MatplotlibTrajectory(plt_queue,
+#                             x_ref=x_d(t), y_ref=y_d(t),
+#                             x_lim=(0, 8.3), y_lim=(-1.2, 3.5))
+plt_stream = PlotlyTrajectory(plt_queue)
 tag_stream = TagImage(tags_queue, cam_queue)
 app = Flask(__name__, template_folder='../templates')
 
 @app.route('/')
 def index():
     """Video streaming home page."""
-    return render_template('index.html')
+    return render_template('cam_plotly_index.html')
 @app.route('/video_feed')
 def video_feed():
     """Video streaming route. Put this in the src attribute of an img tag."""
@@ -50,7 +51,11 @@ def video_feed():
 def plot_feed():
     """Plotly streaming route"""
     return Response(plt_stream.gen(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+                    content_type='text/event-stream')
+# def plot_feed():
+#     """Matplotlib streaming route"""
+#     return Response(plt_stream.gen(),
+#                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # run Flask app in a process
 stream_proc = multiprocessing.Process(target=app.run, name="Flask app", kwargs={'host': '0.0.0.0', 'threaded': True})
@@ -101,7 +106,7 @@ try:
             if (rows > 400):
                 traj = np.delete(traj, obj=0, axis=0) # delete top row (oldest)
             yaw = np.arctan2(curr_pos[0,1]-y_prev, curr_pos[0,0]-x_prev)
-            plt_stream.set_plot(traj, yaw)
+            plt_stream.set_plot(curr_pos[0,0], curr_pos[0,1], yaw)
 
             i += 1
 

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Live Data Plot</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div id="live-plot"></div>
+    <div id="camera">
+      <img src="{{ url_for('video_feed') }}">
+    </div>
+    <script>
+        var trace = {
+            type: 'scatter',
+            mode: 'lines',
+            x: [],
+            y: []
+        }
+        var data = [];  // Initialize an empty array to store data
+        var layout = {
+            title: 'Live Data Plot',
+            xaxis: {
+              title: 'x (m)',
+              range: [0, 8.3]
+            },
+            yaxis: {
+              title: 'y (m)',
+              range: [-1.2, 3.5]
+            }
+        };
+
+        var plot = Plotly.newPlot('live-plot', [trace], layout);
+
+        const eventSource = new EventSource('/plot_feed');
+
+        eventSource.onmessage = function(event) {
+            // Parse the JSON data received through SSE
+            const jsonData = JSON.parse(event.data);
+
+            // Extract data points from JSON
+            const x = jsonData.x;
+            const y = jsonData.y;
+            const yaw = jsonData.yaw;
+
+            // Add the new data point to the data array
+            data.push({ x: x, y: y, yaw: yaw });
+
+            // Update the Plotly chart with the entire data array
+            Plotly.update('live-plot', { x: [data.map(item => item.x)], y: [data.map(item => item.y)] });
+
+        };
+
+    </script>
+</body>
+</html>
