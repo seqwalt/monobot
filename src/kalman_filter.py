@@ -17,7 +17,7 @@ class ExtendedKalmanFilter:
         self.yaw_tag3 = 3*np.pi/2
         self.yaw_tag4 = 2*np.pi
         self.yaw_tag5 = np.pi/2
-        self.inc_tags01235 = False # true if all tags except tag4 have had their yaw incremented by 2*pi
+        self.inc_01235 = False # true if all tags except tag4 have had their yaw incremented by 2*pi
 
     def A_func(self, dt, sin_yaw, cos_yaw, v, r, w_r, w_l, bl):
         A_top = np.array([[1, 0, -dt*v*sin_yaw, dt*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
