@@ -48,7 +48,7 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 @app.route('/plot_feed')
 def plot_feed():
-    """Plotly streaming route"""
+    """Plot streaming route"""
     return Response(plt_stream.gen(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -70,7 +70,8 @@ noise = generate_perlin_noise_2d((256, 256), (8, 8))
 # Initialize tag detection
 td = TagDetect()
 print_hz = 15
-temp_t = 0
+plot_hz = 0.333
+temp_t = temp2_t = 0
 start_t = time.time()
 traj = np.array((x_d(0), y_d(0))).reshape(1, 2)
 curr_pos = traj
@@ -80,17 +81,17 @@ try:
     while True:
         curr_t = time.time() - start_t
 
-        # AprilTag detection
-        _, img = camera.read()    # Read current camera frame
-        tags, detect_time, gray_img = td.DetectTags(img) # Detect AprilTag
-        tag_stream.set_tags(tags, gray_img)
-
         # Printing/Logging
         if (curr_t - temp_t > 1.0/print_hz):
             temp_t = curr_t
             # Plot streaming
             dt = 1.0/print_hz
             n = 0.05
+
+            # AprilTag detection
+            _, img = camera.read()    # Read current camera frame
+            tags, detect_time, gray_img = td.DetectTags(img) # Detect AprilTag
+            tag_stream.set_tags(tags, gray_img)
 
             x_prev = curr_pos[0,0]
             y_prev = curr_pos[0,1]
@@ -101,9 +102,11 @@ try:
             if (rows > 400):
                 traj = np.delete(traj, obj=0, axis=0) # delete top row (oldest)
             yaw = np.arctan2(curr_pos[0,1]-y_prev, curr_pos[0,0]-x_prev)
+            i += 1
+        if (curr_t - temp2_t > 1.0/plot_hz):
+            temp2_t = curr_t
             plt_stream.set_plot(traj, yaw)
 
-            i += 1
 
 except KeyboardInterrupt:
     camera.release()
