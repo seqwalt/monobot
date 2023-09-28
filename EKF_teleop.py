@@ -21,7 +21,7 @@ max_queue_sz = 1
 plt_queue = multiprocessing.Queue()
 cam_queue = multiprocessing.Queue(maxsize=max_queue_sz)
 tags_queue = multiprocessing.Queue(maxsize=max_queue_sz)
-plt_stream = PlotTrajectory(plt_queue)
+plt_stream = PlotlyTrajectory(plt_queue)
 tag_stream = TagImage(tags_queue, cam_queue)
 app = Flask(__name__)
 
