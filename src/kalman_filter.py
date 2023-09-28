@@ -97,7 +97,8 @@ class ExtendedKalmanFilter:
             R_CB = np.array([[0, 0, 1],[-1, 0, 0],[0, -1, 0]]) # rotates vectors from cam frame to body frame
             p_CB = np.array((0.0325, 0, 0)).reshape(-1, 1)     # position of camera frame in body frame
             iter = 0
-            have_full_measurement = True
+            valid_tag_ids = [] # ids for valid measurements
+            valid_measurements = True
 
             for tag in tags:
                 # Init current measurment vector
@@ -122,7 +123,7 @@ class ExtendedKalmanFilter:
                 tag_name = 'tag'+str(tag.tag_id)
                 if (len(self.prev_tag_data[tag_name]) == 0):
                     # tag had no measurement at previous time step
-                    have_full_measurement = False
+                    valid_measurements = False
                 else:
                     prev_time = self.prev_tag_data['t']
                     prev_x_TB = self.prev_tag_data[tag_name][0]
@@ -137,6 +138,9 @@ class ExtendedKalmanFilter:
                     z_i[4,0] = dy_TB
                     z_i[5,0] = dyaw_TB
 
+                    # store ids of valid measurements
+                    valid_tag_ids.append(tag.tag_id)
+
                 # Update prev_tag_data for curr tag
                 self.prev_tag_data[tag_name] = [p_TB[0,0], p_TB[1,0], yaw_TB]
 
@@ -148,8 +152,8 @@ class ExtendedKalmanFilter:
             # Update prev_tag_data detect time
             self.prev_tag_data['t'] = detect_time
 
-            if (have_full_measurement):
-                self.Measurement(z, tag_ids)
+            if (valid_measurements):
+                self.Measurement(z, valid_tag_ids)
 
             # Remove prev_tag_data elements for tag_ids that are not currently visible
             for i in range(6):

@@ -34,10 +34,9 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 @app.route('/plot_feed')
 def plot_feed():
-    """Plotly streaming route"""
+    """Plot streaming route"""
     return Response(plt_stream.gen(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
-
+                    content_type='text/event-stream')
 # run Flask app in a process
 stream_proc = multiprocessing.Process(target=app.run, name="Flask app", kwargs={'host': '0.0.0.0', 'threaded': True})
 stream_proc.daemon = True
@@ -101,7 +100,7 @@ Traj = np.nan*np.ones((1,21))
 # Init control and throttle mapping
 speed = speed_d(0)
 yaw_rate = yaw_rate_d(0)
-rate2throttle = np.load('rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
+rate2throttle = np.load('src/rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
 r2t = rate2throttle.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_spd.py)
 right_rate = left_rate = 0
 

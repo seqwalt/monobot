@@ -36,9 +36,9 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 @app.route('/plot_feed')
 def plot_feed():
-    """Plotly streaming route"""
+    """Plot streaming route"""
     return Response(plt_stream.gen(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+                    content_type='text/event-stream')
 
 # run Flask app in a process
 stream_proc = multiprocessing.Process(target=app.run, name="Flask app", kwargs={'host': '0.0.0.0', 'threaded': True})
@@ -65,7 +65,7 @@ base_line = 0.14089 # meters (dist btw wheels)
 # Init control and throttle mapping
 speed = 0
 yaw_rate = 0
-rate2throttle = np.load('rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
+rate2throttle = np.load('src/rate2throttle.npy', allow_pickle=True) # load wheel rate calibration
 r2t = rate2throttle.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_spd.py)
 right_rate = left_rate = 0
 
@@ -81,7 +81,7 @@ print('Found tag0!')
 EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
 Traj = EKF.GetEKFState().T
 
-kp.KeyPress()
+kp = KeyPress()
 key_thrd = threading.Thread(target=listen_keyboard, name="keyboard listener", kwargs={'on_press': kp.press})
 key_thrd.daemon = True
 key_thrd.start()
