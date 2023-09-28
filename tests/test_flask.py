@@ -52,10 +52,6 @@ def plot_feed():
     """Plot streaming route"""
     return Response(plt_stream.gen(),
                     content_type='text/event-stream')
-# def plot_feed():
-#     """Matplotlib streaming route"""
-#     return Response(plt_stream.gen(),
-#                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # run Flask app in a process
 stream_proc = multiprocessing.Process(target=app.run, name="Flask app", kwargs={'host': '0.0.0.0', 'threaded': True})

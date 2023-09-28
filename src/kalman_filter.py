@@ -121,8 +121,9 @@ class ExtendedKalmanFilter:
 
                 # Velocity and Yaw rate of Tag frame in Body frame
                 tag_name = 'tag'+str(tag.tag_id)
-                if (len(self.prev_tag_data[tag_name]) == 0):
-                    # tag had no measurement at previous time step
+                prev_meas_exist = len(self.prev_tag_data[tag_name]) != 0
+                if (not prev_meas_exist):
+                    print('Rejected measurment due no velocity measured')
                     valid_measurements = False
                 else:
                     prev_time = self.prev_tag_data['t']
@@ -134,12 +135,20 @@ class ExtendedKalmanFilter:
                     dy_TB = (p_TB[1,0] - prev_y_TB)/dt    # y vel "measurement"
                     dyaw_TB = (yaw_TB - prev_yaw_TB)/dt # yaw rate "measurement"
 
-                    z_i[3,0] = dx_TB
-                    z_i[4,0] = dy_TB
-                    z_i[5,0] = dyaw_TB
+                    dx_TB_valid = np.abs(dx_TB) < 1.0     # dx_TB valid if less than 1m/s
+                    dy_TB_valid = np.abs(dy_TB) < 1.0     # dy_TB valid if less than 1m/s
+                    dyaw_TB_valid = np.abs(dx_TB) < np.pi # dyaw_TB valid if less than pi rad/s
+                    if (not dx_TB_valid or not dy_TB_valid or not dyaw_TB_valid):
+                        print('Rejected measurment due to invalid rate')
+                        valid_measurements = False
+                    else:
+                        # valid measurement
+                        z_i[3,0] = dx_TB
+                        z_i[4,0] = dy_TB
+                        z_i[5,0] = dyaw_TB
 
-                    # store ids of valid measurements
-                    valid_tag_ids.append(tag.tag_id)
+                        # store ids of valid measurements
+                        valid_tag_ids.append(tag.tag_id)
 
                 # Update prev_tag_data for curr tag
                 self.prev_tag_data[tag_name] = [p_TB[0,0], p_TB[1,0], yaw_TB]
