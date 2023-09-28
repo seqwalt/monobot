@@ -1,9 +1,14 @@
+import sys
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
 
+if len(sys.argv) != 2:
+    print('Usage: python3 traj_analysis.py <path/to/traj.txt>')
+    exit()
+
 # Define the CSV file path
-csv_file = 'traj0.txt'  # Replace with the path to your CSV file
+csv_file = sys.argv[1]
 
 # Initialize empty lists to store data
 data = {
