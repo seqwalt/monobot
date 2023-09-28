@@ -3,7 +3,6 @@ import numpy as np
 class ExtendedKalmanFilter:
     def __init__(self, x, y, yaw):
         # Initialize state
-        self.yaw_init = yaw
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3, x_tag_1, y_tag_1, x_tag_2, y_tag_2, x_tag_3, y_tag_3, x_tag_4, y_tag_4, x_tag_5, y_tag_5
         self.X = np.array((x, y, yaw, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 6.40969, -0.6223, 0.635, -1.0795, 3.683, 1.9304, 1.1684, 2.032, 1.71069, -1.0795)).reshape(-1,1)
         # Initialize covariance matrix
@@ -11,6 +10,14 @@ class ExtendedKalmanFilter:
         self.P = np.eye(X_sz)
         # Tag data history
         self.prev_tag_data = {'t':[], 'tag0':[], 'tag1':[], 'tag2':[], 'tag3':[], 'tag4':[], 'tag5':[]}
+        # Tag yaw values (incremented periodically to handle yaw wrapping)
+        self.yaw_tag0 = 0
+        self.yaw_tag1 = np.pi
+        self.yaw_tag2 = np.pi/2
+        self.yaw_tag3 = 3*np.pi/2
+        self.yaw_tag4 = 2*np.pi
+        self.yaw_tag5 = np.pi/2
+        self.inc_tags01235 = False # true if all tags except tag4 have had their yaw incremented by 2*pi
 
     def A_func(self, dt, sin_yaw, cos_yaw, v, r, w_r, w_l, bl):
         A_top = np.array([[1, 0, -dt*v*sin_yaw, dt*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -187,27 +194,39 @@ class ExtendedKalmanFilter:
         return dX
 
     def MeasureDyn_i(self, tag_id_):
-        num_rots = np.round((self.X[2,0]-self.yaw_init)/(2*np.pi)) # round to int nearest to pi/4 + yaw/2pi (heuristic)
-        print("\nNum Rots: " + str(num_rots))
-        rad_rots = 2*np.pi*num_rots
         tag_id = int(tag_id_)
         if (tag_id == 0):
             x_tag = 0
             y_tag = 0
-            yaw_tag = 0 + rad_rots
+            yaw_tag = self.yaw_tag0
+            # do once: increment tag4 after passing tag4 (since tag0 is viewed after tag4 for a CCW path)
+            if (self.inc_01235):
+                self.inc_01235 = False
+                self.yaw_tag4 += 2*np.pi # if tag0 is visible, and inc_1235 is true (robot has passed tag4), then self.yaw_tag4 needs to be incremented, and inc_1235 reset
+                print("Yaw increment of tag 4")
         else:
             x_tag = self.X[9 + 2*tag_id,0]
             y_tag = self.X[10 + 2*tag_id,0]
             if (tag_id == 1):
-                yaw_tag = np.pi + rad_rots
+                yaw_tag = self.yaw_tag1
             elif (tag_id == 2):
-                yaw_tag = np.pi/2 + rad_rots
+                yaw_tag = self.yaw_tag2
             elif (tag_id == 3):
-                yaw_tag = 3*np.pi/2 + rad_rots
+                yaw_tag = self.yaw_tag3
             elif (tag_id == 4):
-                yaw_tag = 2*np.pi + rad_rots
+                yaw_tag = self.yaw_tag4
+                # do once: increment yaw values of all tags besides 4
+                if (not self.inc_01235):
+                    self.inc_01235 = True
+                    self.yaw_tag0 += 2*np.pi
+                    self.yaw_tag1 += 2*np.pi
+                    self.yaw_tag2 += 2*np.pi
+                    self.yaw_tag3 += 2*np.pi
+                    self.yaw_tag5 += 2*np.pi
+                    print("Yaw increment of tags 0,1,2,3,5")
+
             elif (tag_id == 5):
-                yaw_tag = np.pi/2 +rad_rots
+                yaw_tag = self.yaw_tag5
         x = self.X[0,0]
         y = self.X[1,0]
         yaw = self.X[2,0]
