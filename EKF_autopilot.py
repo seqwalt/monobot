@@ -12,11 +12,11 @@ import threading       # for key press listener
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/src')
 from kalman_filter import ExtendedKalmanFilter
 from fiducial_detect import TagDetect
-from flask_generators import PlotTrajectory, TagImage
+from flask_generators import PlotlyTrajectory, TagImage
 
 # -------------------- Flask setup -------------------- #
 max_queue_sz = 1
-plt_queue = multiprocessing.Queue(maxsize=max_queue_sz)
+plt_queue = multiprocessing.Queue()
 cam_queue = multiprocessing.Queue(maxsize=max_queue_sz)
 tags_queue = multiprocessing.Queue(maxsize=max_queue_sz)
 plt_stream = PlotTrajectory(plt_queue)
@@ -171,7 +171,7 @@ try:
             # Save to trajectory for analysis
             Traj = np.vstack((Traj, X_est.T))
             # Update plot stream
-            plt_stream.set_plot(Traj[:,0:2], yaw_est)
+            plt_stream.set_plot(x_est, y_est, yaw_est)
             # Update camera stream
             tag_stream.set_tags(tags, gray_img)
 

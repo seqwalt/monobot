@@ -10,7 +10,7 @@ from perlin_noise import generate_perlin_noise_2d
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../src')
 from fiducial_detect import TagDetect
-from flask_generators import PlotlyTrajectory, TagImage
+from flask_generators import PlotlyTrajectory, TagImage, Camera
 
 # Reference trajectory
 a = 4.1148
@@ -26,7 +26,7 @@ def y_d(t):
 
 # -------------------- Flask setup -------------------- #
 max_queue_sz = 1
-plt_queue = multiprocessing.Queue(maxsize=max_queue_sz)
+plt_queue = multiprocessing.Queue()
 cam_queue = multiprocessing.Queue(maxsize=max_queue_sz)
 tags_queue = multiprocessing.Queue(maxsize=max_queue_sz)
 
@@ -41,7 +41,7 @@ app = Flask(__name__, template_folder='../templates')
 @app.route('/')
 def index():
     """Video streaming home page."""
-    return render_template('cam_plotly_index.html')
+    return render_template('index.html')
 @app.route('/video_feed')
 def video_feed():
     """Video streaming route. Put this in the src attribute of an img tag."""

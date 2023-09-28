@@ -2,16 +2,25 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Live Data Plot</title>
+    <title>Data stream</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"></link>
+    <style>
+        .z-depth-1 {box-shadow: -4px 4px 4px rgba(0, 0, 0, 0.1);}
+    </style>
 </head>
 <body>
-    <div class="row justify-content-md-center" id="live-plot">
-    <div id="live-plot"></div>
-    <div id="camera">
-      <img src="{{ url_for('video_feed') }}">
+    <div class="container mt-4">
+      <div class="row justify-content-md-center">
+        <div class="col-md-6">
+          <div id="live-plot" class="img-fluid rounded z-depth-1" ></div>
+        </div>
+        <div class="col-md-6">
+          <img src="{{ url_for('video_feed') }}" alt="AprilTag video stream" class="img-fluid rounded z-depth-1" />
+        </div>
+      </div>
     </div>
+
     <script>
         var trace = {
             type: 'scatter',
@@ -21,7 +30,7 @@
         }
         var data = [];  // Initialize an empty array to store data
         var layout = {
-            title: 'Live Data Plot',
+            title: 'Monobot trajectory',
             xaxis: {
               title: 'x (m)',
               range: [0, 8.3]
@@ -31,6 +40,42 @@
               range: [-1.2, 3.5]
             }
         };
+
+        function updateTriangle(x, y, yaw) {
+          // Define the triangle's center and size
+          const centerX = x;
+          const centerY = y;
+          const size = 0.2; // Adjust the size as needed
+
+          // Calculate the coordinates of the triangle vertices based on the angle
+          const x0 = centerX + size * Math.cos(yaw);
+          const y0 = centerY + size * Math.sin(yaw);
+          const x1 = centerX + 0.5*size * Math.cos(yaw + (2 * Math.PI) / 3);
+          const y1 = centerY + 0.5*size * Math.sin(yaw + (2 * Math.PI) / 3);
+          const x2 = centerX + 0.5*size * Math.cos(yaw + (4 * Math.PI) / 3);
+          const y2 = centerY + 0.5*size * Math.sin(yaw + (4 * Math.PI) / 3);
+
+          // Update the layout to change the triangle shape
+          const updated_layout = {
+            shapes: [
+              {
+                type: 'path',
+                path: `M ${x0} ${y0} L ${x1} ${y1} L ${x2} ${y2} Z`,
+                x0: x0,
+                y0: y0,
+                x1: x1,
+                y1: y1,
+                xref: 'x',
+                yref: 'y',
+                line: {
+                  color: 'black', // Change the line color as needed
+                },
+                fillcolor: 'rgba(0, 0, 255, 0.8)', // Change the fill color as needed
+              },
+            ],
+          };
+          return updated_layout
+        }
 
         var plot = Plotly.newPlot('live-plot', [trace], layout);
 
@@ -48,8 +93,16 @@
             // Add the new data point to the data array
             data.push({ x: x, y: y, yaw: yaw });
 
+            // Ensure that the data array does not exceed the maximum number of data points
+            maxDataPoints = 400
+            if (data.length > maxDataPoints) {
+                data.shift(); // Remove the oldest data point (first in the array)
+            }
+
             // Update the Plotly chart with the entire data array
-            Plotly.update('live-plot', { x: [data.map(item => item.x)], y: [data.map(item => item.y)] });
+            updated_data = { x: [data.map(item => item.x)], y: [data.map(item => item.y)] }
+            updated_layout = updateTriangle(x, y, yaw)
+            Plotly.update('live-plot', updated_data, updated_layout);
 
         };
 
