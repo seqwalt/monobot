@@ -27,7 +27,7 @@ class ExtendedKalmanFilter:
 
     def Q_func(self):
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3
-        Q_diag = 0.1*np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0])
+        Q_diag = np.array([0.2, 0.2, 0.2, 0.2, 0.2, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0])
         return np.diag(Q_diag)
 
     # H_i matrix for tag i
@@ -117,7 +117,7 @@ class ExtendedKalmanFilter:
 
                 # Yaw of Tag frame w.r.t Body frame
                 R_TB = R_CB @ R_TC                        # rotates vectors from tag frame to body frame
-                yaw_TB = np.arctan2(R_TB[2,0], R_TB[0,0]) # where "yaw_TB" is a rotation about the tag frame -y axis. Calculated using euler order: YZX (see sandbox/symbolic_sandbox_rotation_mat.py)
+                yaw_TB = np.pi + np.arctan2(R_TC[2,0], R_TC[0,0]) # where "yaw_TB" is a rotation about the body frame z axis. Calculated using euler order: ZYX (see sandbox/symbolic_sandbox_rotation_mat.py)
                 z_i[2,0] = yaw_TB # yaw (about gravity axis) from tag frame to body frame
 
                 # Velocity and Yaw rate of Tag frame in Body frame
@@ -272,13 +272,13 @@ class ExtendedKalmanFilter:
                 # first iteration
                 H = self.H_i_func(x, y, np.sin(yaw), np.cos(yaw), yaw_rate, tag_id, x_tag, y_tag)
                 MeasDyn = self.MeasureDyn_i(tag_id)
-                R_diag = 0.08 + 0.02*tag_dist*np.ones(6)
+                R_diag = 0.08 + (0.5*tag_dist + 5.0*tag_dist**2)*np.ones(6)
             else:
                 H_i = self.H_i_func(x, y, np.sin(yaw), np.cos(yaw), yaw_rate, tag_id, x_tag, y_tag)
                 H = np.vstack((H, H_i))
                 MeasDyn_i = self.MeasureDyn_i(tag_id)
                 MeasDyn = np.vstack((MeasDyn, MeasDyn_i))
-                R_diag_i = 0.08 + 0.02*tag_dist*np.ones(6)
+                R_diag_i = 0.08 + (0.5*tag_dist + 5.0*tag_dist**2)*np.ones(6)
                 R_diag = np.hstack((R_diag, R_diag_i))
             iter += 1
 
