@@ -27,7 +27,7 @@ class ExtendedKalmanFilter:
 
     def Q_func(self):
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3
-        Q_diag = np.array([0.2, 0.2, 0.2, 0.05, 0.05, 0.2, 0.0, 0.0, 0.2, 0.0, 0.0])
+        Q_diag = np.array([0.1, 0.1, 0.1, 0.01, 0.01, 0.01, 0.0, 0.0, 0.01, 0.0, 0.0])
         return np.diag(Q_diag)
 
     # H_i matrix for tag i
@@ -186,24 +186,26 @@ class ExtendedKalmanFilter:
         return dX
 
     def MeasureDyn_i(self, tag_id_):
+        num_rots = np.round(-np.pi/4 + self.X[2,0]/(2*pi)) # round to int nearest to pi/4 + yaw/2pi (heuristic)
+        rad_rots = 2*np.pi*num_rots
         tag_id = int(tag_id_)
         if (tag_id == 0):
             x_tag = 0
             y_tag = 0
-            yaw_tag = 0
+            yaw_tag = 0 + rad_rots
         else:
             x_tag = self.X[9 + 2*tag_id,0]
             y_tag = self.X[10 + 2*tag_id,0]
             if (tag_id == 1):
-                yaw_tag = np.pi
+                yaw_tag = np.pi + rad_rots
             elif (tag_id == 2):
-                yaw_tag = np.pi/2
+                yaw_tag = np.pi/2 + rad_rots
             elif (tag_id == 3):
-                yaw_tag = 3*np.pi/2
+                yaw_tag = 3*np.pi/2 + rad_rots
             elif (tag_id == 4):
-                yaw_tag = 0
+                yaw_tag = 2*np.pi + rad_rots
             elif (tag_id == 5):
-                yaw_tag = np.pi/2
+                yaw_tag = np.pi/2 +rad_rots
         x = self.X[0,0]
         y = self.X[1,0]
         yaw = self.X[2,0]
