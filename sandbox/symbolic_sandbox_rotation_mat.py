@@ -12,8 +12,7 @@ Ry = sp.Matrix([[ sp.cos(p), 0, sp.sin(p)],
 Rx = sp.Matrix([[1,         0,          0],
                 [0, sp.cos(r), -sp.sin(r)],
                 [0, sp.sin(r),  sp.cos(r)]])
-# R = Ry*Rz*Rx
-R = Rz*Ry*Rx
+R = Ry*Rz*Rx
 sp.pprint(R)
 
 atan = sp.atan2(-R[2,0],R[0,0])

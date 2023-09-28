@@ -117,7 +117,7 @@ class ExtendedKalmanFilter:
 
                 # Yaw of Tag frame w.r.t Body frame
                 R_TB = R_CB @ R_TC                        # rotates vectors from tag frame to body frame
-                yaw_TB = np.pi + np.arctan2(R_TC[2,0], R_TC[0,0]) # where "yaw_TB" is a rotation about the body frame z axis. Calculated using euler order: ZYX (see sandbox/symbolic_sandbox_rotation_mat.py)
+                yaw_TB = np.pi + np.arctan2(R_TC[2,0], R_TC[0,0]) # where "yaw_TB" is a rotation about the body frame z axis, and equal rotation about camera frame. Calculated using euler order: YZX (see sandbox/symbolic_sandbox_rotation_mat.py)
                 z_i[2,0] = yaw_TB # yaw (about gravity axis) from tag frame to body frame
 
                 # Velocity and Yaw rate of Tag frame in Body frame
