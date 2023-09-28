@@ -215,7 +215,7 @@ class ExtendedKalmanFilter:
         cos = np.cos(yaw)
         sin = np.sin(yaw)
         p_tag_body    = np.array([cos*(x_tag - x) + sin*(y_tag - y), cos*(y_tag - y) - sin*(x_tag - x)]).reshape(-1,1)
-        yaw_tag_body  = yaw_tag - yaw
+        yaw_tag_body  = -yaw_tag + yaw # yaw_tag_body  = yaw_tag - yaw
         dp_tag_body   = np.array([yaw_rate*(cos*(y_tag - y) - sin*(x_tag - x)) - speed, -yaw_rate*(sin*(y_tag - y) + cos*(x_tag - x))]).reshape(-1,1)
         dyaw_tag_body = -yaw_rate
         h = np.vstack((p_tag_body, yaw_tag_body, dp_tag_body, dyaw_tag_body))

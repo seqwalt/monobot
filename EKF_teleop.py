@@ -141,7 +141,7 @@ try:
         X_est = EKF.GetEKFState()
 
         # Update control input (user input)
-        speed = 0.3
+        speed = 0.0
         if (not yaw_rate == kp.yaw_rate):
             yaw_rate = kp.yaw_rate
             if (not kp.command == None):
