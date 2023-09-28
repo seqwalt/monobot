@@ -102,6 +102,9 @@ try:
         dt = curr_t - prev_t
         prev_t = curr_t
 
+        # EKF Propagation Step
+        EKF.Propagate(right_rate, left_rate, dt) # Tell state estimator control inputs
+
         # Printing/Logging/EKF Measurement
         if (curr_t - temp_t > 1.0/print_hz):
             temp_t = curr_t
@@ -125,9 +128,6 @@ try:
             plt_stream.set_plot(X_est[0,0], X_est[1,0], X_est[2,0])
             # Update camera stream
             tag_stream.set_tags(tags, gray_img)
-
-        # EKF Propagation Step
-        EKF.Propagate(right_rate, left_rate, dt) # Tell state estimator control inputs
 
         # Apply control to system
         scale_rate = 0.65 # determined from running the EKF (cr1 and cl1 we both around 0.6 to 0.7)

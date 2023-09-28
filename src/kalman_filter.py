@@ -3,6 +3,7 @@ import numpy as np
 class ExtendedKalmanFilter:
     def __init__(self, x, y, yaw):
         # Initialize state
+        self.yaw_init = yaw
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3, x_tag_1, y_tag_1, x_tag_2, y_tag_2, x_tag_3, y_tag_3, x_tag_4, y_tag_4, x_tag_5, y_tag_5
         self.X = np.array((x, y, yaw, 0, 0, 1, 0, 0, 1, 0, 0, 6.40969, -0.6223, 0.635, -1.0795, 3.683, 1.9304, 1.1684, 2.032, 1.71069, -1.0795)).reshape(-1,1)
         # Initialize covariance matrix
@@ -27,7 +28,7 @@ class ExtendedKalmanFilter:
 
     def Q_func(self):
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3
-        Q_diag = np.array([0.1, 0.1, 0.1, 0.01, 0.01, 0.01, 0.0, 0.0, 0.01, 0.0, 0.0])
+        Q_diag = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.001, 0.0, 0.0, 0.001, 0.0, 0.0])
         return np.diag(Q_diag)
 
     # H_i matrix for tag i
@@ -186,7 +187,8 @@ class ExtendedKalmanFilter:
         return dX
 
     def MeasureDyn_i(self, tag_id_):
-        num_rots = np.round(-np.pi/4 + self.X[2,0]/(2*pi)) # round to int nearest to pi/4 + yaw/2pi (heuristic)
+        num_rots = np.round((self.X[2,0]-self.yaw_init)/(2*np.pi)) # round to int nearest to pi/4 + yaw/2pi (heuristic)
+        print("\nNum Rots: " + str(num_rots))
         rad_rots = 2*np.pi*num_rots
         tag_id = int(tag_id_)
         if (tag_id == 0):
@@ -233,6 +235,7 @@ class ExtendedKalmanFilter:
         w_l_true = self.X[8,0]*w_l + self.X[9,0]*w_l**2 + self.X[10,0]*w_l**3
         self.X[3,0] = (whl_rad/2)*(w_r_true + w_l_true)         # update speed
         self.X[4,0] = (whl_rad/base_line)*(w_r_true - w_l_true) # update yaw_rate
+        print("yaw rate b4 rk4: " + str(self.X[4,0]))
 
         # RK-4 propagation
         k1 = self.ProcessDyn(self.X)
@@ -241,6 +244,7 @@ class ExtendedKalmanFilter:
         k4 = self.ProcessDyn(self.X+dt*k3)
         k = (k1+2*k2+2*k3+k4)/6
         self.X = self.X + dt*k
+        print("yaw rate af rk4: " + str(self.X[4,0]))
 
         # Propogate error covariance
         yaw = self.X[2,0]
