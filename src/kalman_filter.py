@@ -28,7 +28,7 @@ class ExtendedKalmanFilter:
 
     def Q_func(self):
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3
-        Q_diag = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.001, 0.0, 0.0, 0.001, 0.0, 0.0])
+        Q_diag = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         return np.diag(Q_diag)
 
     # H_i matrix for tag i
@@ -235,7 +235,6 @@ class ExtendedKalmanFilter:
         w_l_true = self.X[8,0]*w_l + self.X[9,0]*w_l**2 + self.X[10,0]*w_l**3
         self.X[3,0] = (whl_rad/2)*(w_r_true + w_l_true)         # update speed
         self.X[4,0] = (whl_rad/base_line)*(w_r_true - w_l_true) # update yaw_rate
-        print("yaw rate b4 rk4: " + str(self.X[4,0]))
 
         # RK-4 propagation
         k1 = self.ProcessDyn(self.X)
@@ -244,7 +243,6 @@ class ExtendedKalmanFilter:
         k4 = self.ProcessDyn(self.X+dt*k3)
         k = (k1+2*k2+2*k3+k4)/6
         self.X = self.X + dt*k
-        print("yaw rate af rk4: " + str(self.X[4,0]))
 
         # Propogate error covariance
         yaw = self.X[2,0]

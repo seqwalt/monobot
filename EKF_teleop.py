@@ -70,15 +70,16 @@ r2t = rate2throttle.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_s
 right_rate = left_rate = 0
 
 # Initial pose estimate. NOTE: Face camera to tag0
-detect_tag0 = False
-print('\nLooking for tag0...')
-while (not detect_tag0):
-    _, img = camera.read()    # Read current camera frame
-    tags, _, gray_img = td.DetectTags(img) # Detect AprilTag
-    tag_stream.set_tags(tags, gray_img)
-    detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
-print('Found tag0!')
-EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
+# detect_tag0 = False
+# print('\nLooking for tag0...')
+# while (not detect_tag0):
+#     _, img = camera.read()    # Read current camera frame
+#     tags, _, gray_img = td.DetectTags(img) # Detect AprilTag
+#     tag_stream.set_tags(tags, gray_img)
+#     detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
+# print('Found tag0!')
+# EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
+EKF = ExtendedKalmanFilter(0, 0, 0)
 Traj = EKF.GetEKFState().T
 
 kp = KeyPress()
@@ -130,9 +131,9 @@ try:
             tag_stream.set_tags(tags, gray_img)
 
         # Apply control to system
-        scale_rate = 0.65 # determined from running the EKF (cr1 and cl1 we both around 0.6 to 0.7)
-        left_rate = (1/scale_rate)*(2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
-        right_rate = (1/scale_rate)*(2*speed + yaw_rate*base_line)/(2*whl_rad) # right wheel rate
+        rate_scale = 0.65 # determined from running the EKF (cr1 and cl1 we both around 0.6 to 0.7)
+        left_rate = (1/rate_scale)*(2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
+        right_rate = (1/rate_scale)*(2*speed + yaw_rate*base_line)/(2*whl_rad) # right wheel rate
         left_throttle = np.clip(r2t(left_rate), 0, 1)
         right_throttle = -np.clip(r2t(right_rate), 0, 1) # (-) due to flipped motor
         kit.continuous_servo[7].throttle = left_throttle  # left wheel
