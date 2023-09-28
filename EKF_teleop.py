@@ -70,16 +70,16 @@ r2t = rate2throttle.item() # scipy Akima1DInterpolator (see sanbox/calib_wheel_s
 right_rate = left_rate = 0
 
 # Initial pose estimate. NOTE: Face camera to tag0
-# detect_tag0 = False
-# print('\nLooking for tag0...')
-# while (not detect_tag0):
-#     _, img = camera.read()    # Read current camera frame
-#     tags, _, gray_img = td.DetectTags(img) # Detect AprilTag
-#     tag_stream.set_tags(tags, gray_img)
-#     detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
-# print('Found tag0!')
-# EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
-EKF = ExtendedKalmanFilter(0, 0, 0)
+detect_tag0 = False
+print('\nLooking for tag0...')
+while (not detect_tag0):
+    _, img = camera.read()    # Read current camera frame
+    tags, _, gray_img = td.DetectTags(img) # Detect AprilTag
+    tag_stream.set_tags(tags, gray_img)
+    detect_tag0, x_init, y_init, yaw_init = td.InitialPoseEst(tags)
+print('Found tag0!')
+EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
+# EKF = ExtendedKalmanFilter(0, 0, 0)
 Traj = EKF.GetEKFState().T
 
 kp = KeyPress()
@@ -131,11 +131,15 @@ try:
             tag_stream.set_tags(tags, gray_img)
 
         # Apply control to system
-        rate_scale = 0.65 # determined from running the EKF (cr1 and cl1 we both around 0.6 to 0.7)
-        left_rate = (1/rate_scale)*(2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
-        right_rate = (1/rate_scale)*(2*speed + yaw_rate*base_line)/(2*whl_rad) # right wheel rate
-        left_throttle = np.clip(r2t(left_rate), 0, 1)
-        right_throttle = -np.clip(r2t(right_rate), 0, 1) # (-) due to flipped motor
+        scl = (1/0.45)
+        scl_yaw_l = 2*speed/(base_line*np.pi/3)*0.9*0.7
+        scl_yaw_r = 2*speed/(base_line*np.pi/3)*0.8*0.68
+        left_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)  # original left wheel rate, provided to EKF
+        left_rate_adjusted = scl*(2*speed - scl_yaw_l*yaw_rate*base_line)/(2*whl_rad)  # left wheel rate applied to system
+        right_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad) # original right wheel rate, provided to EKF
+        right_rate_adjusted = scl*(2*speed + scl_yaw_r*yaw_rate*base_line)/(2*whl_rad) # right wheel rate applied to system
+        left_throttle = np.clip(r2t(left_rate_adjusted), 0, 1)
+        right_throttle = -np.clip(r2t(right_rate_adjusted), 0, 1) # (-) due to flipped motor
         kit.continuous_servo[7].throttle = left_throttle  # left wheel
         kit.continuous_servo[8].throttle = right_throttle # right wheel
 
@@ -143,7 +147,7 @@ try:
         X_est = EKF.GetEKFState()
 
         # Update control input (user input)
-        speed = 0.25
+        speed = 0.20
         if (not yaw_rate == kp.yaw_rate):
             yaw_rate = kp.yaw_rate
             if (not kp.command == None):

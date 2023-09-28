@@ -5,7 +5,7 @@ class KeyPress:
         self.yaw_rate = 0.0
         self.command = None
     def press(self, key):
-        rate = np.pi/2
+        rate = np.pi/3
         if key == "a":
             self.command = 'Left turn'
             self.yaw_rate = rate

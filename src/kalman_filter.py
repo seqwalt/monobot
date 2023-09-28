@@ -5,7 +5,7 @@ class ExtendedKalmanFilter:
         # Initialize state
         self.yaw_init = yaw
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3, x_tag_1, y_tag_1, x_tag_2, y_tag_2, x_tag_3, y_tag_3, x_tag_4, y_tag_4, x_tag_5, y_tag_5
-        self.X = np.array((x, y, yaw, 0, 0, 1, 0, 0, 1, 0, 0, 6.40969, -0.6223, 0.635, -1.0795, 3.683, 1.9304, 1.1684, 2.032, 1.71069, -1.0795)).reshape(-1,1)
+        self.X = np.array((x, y, yaw, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 6.40969, -0.6223, 0.635, -1.0795, 3.683, 1.9304, 1.1684, 2.032, 1.71069, -1.0795)).reshape(-1,1)
         # Initialize covariance matrix
         X_sz, _ = self.X.shape
         self.P = np.eye(X_sz)
