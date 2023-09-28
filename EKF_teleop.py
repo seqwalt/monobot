@@ -114,13 +114,13 @@ try:
             # Save trajectory for analysis
             Traj = np.vstack((Traj, X_est.T))
             # Save tags for analysis
-            for (tag in tags):
+            for tag in tags:
                 tag_id = tag.tag_id
                 pose_t = tag.pose_t.reshape(-1, 1)
                 pose_R = tag.pose_R
                 pose_flat = np.hstack(( tag.pose_R.reshape(1,-1), tag.pose_t.reshape(1,-1) ))[0] # recover R with (pose_flat[0:9]).reshape(3,3) and t with (pose_flat[9:]).reshape(-1,1)
                 tag_name = 'tag' + str(tag_id)
-                Tags[tag_id] = np.vstack((Tags[tag_id], np.hstack((detect_time, pose_flat)) ))
+                Tags[tag_name] = np.vstack((Tags[tag_name], np.hstack((detect_time, pose_flat)) ))
             # Update plot stream
             plt_stream.set_plot(X_est[0,0], X_est[1,0], X_est[2,0])
             # Update camera stream
@@ -154,7 +154,7 @@ except KeyboardInterrupt:
     kit.continuous_servo[8].throttle = 0
     # Save EKF states and tag detections
     np.savetxt("logs/traj.txt", Traj, fmt='%.5f', delimiter=",")
-    for (i in range(6)):
+    for i in range(6):
         np.savetxt("logs/tag"+str(i)+".txt", Tags['tag'+str(i)], fmt='%.5f', delimiter=",")
     # Stop video capture
     camera.release()
