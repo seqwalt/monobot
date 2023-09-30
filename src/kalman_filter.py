@@ -8,8 +8,8 @@ class ExtendedKalmanFilter:
         self.X = np.array((x, y, yaw, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 6.224, -0.793, 0.635, -1.0795, 3.745, 1.676, 1.1684, 2.032, 1.71069, -1.0795)).reshape(-1,1)
         # Initialize covariance matrix
         try:
-            self.P = genfromtxt('err_cov.txt', delimiter=',')
-            print(P.shape)
+            self.P = genfromtxt('src/err_cov.txt', delimiter=',')
+            print('Using covariance matrix from file')
         except FileNotFoundError:
             print("Couldn't find covariance matrix file, using identity")
             X_sz, _ = self.X.shape
@@ -65,7 +65,7 @@ class ExtendedKalmanFilter:
         if (not inc_vel_meas):
             # Dont include velocity measurement
             H_i = H_i[0:3,:]
-        return
+        return H_i
 
     # Get current EKF state
     def GetEKFState(self):
@@ -86,10 +86,11 @@ class ExtendedKalmanFilter:
             iter = 0
             valid_tag_ids = [] # ids for valid measurements
             vel_meas = True
+            meas_sz = 6 # default (x,y,yaw,dx,dy,dyaw)
 
             for tag in tags:
                 # Init current measurment vector
-                z_i = np.zeros((6, 1))
+                z_i = np.zeros((meas_sz, 1))
 
                 # Tag ID (0, 1, 2, 3, 4 or 5)
                 tag_ids[iter] = tag.tag_id
@@ -111,6 +112,8 @@ class ExtendedKalmanFilter:
                 prev_meas_exist = len(self.prev_tag_data[tag_name]) != 0
                 if (not prev_meas_exist):
                     vel_meas = False # cannot approximate velocity measurement
+                    meas_sz = 3
+                    z_i = z_i[0:meas_sz, :]
                 else:
                     prev_time = self.prev_tag_data['t']
                     prev_x_TB = self.prev_tag_data[tag_name][0]
@@ -138,7 +141,7 @@ class ExtendedKalmanFilter:
                 self.prev_tag_data[tag_name] = [p_TB[0,0], p_TB[1,0], yaw_TB]
 
                 # Load measurement vector
-                z[6*iter : 6*iter+6] = z_i
+                z[meas_sz*iter : meas_sz*iter+meas_sz] = z_i
 
                 iter += 1
 
@@ -278,11 +281,11 @@ class ExtendedKalmanFilter:
             tag_dist = np.sqrt(z[0 + meas_sz*iter,0]**2 + z[1 + meas_sz*iter,0]**2)
             if (tag_id == tag_ids[0]):
                 # first iteration
-                H = self.H_i_func(x, y, np.sin(yaw), np.cos(yaw), yaw_rate, tag_id, x_tag, y_tag)
+                H = self.H_i_func(vel_meas, x, y, np.sin(yaw), np.cos(yaw), yaw_rate, tag_id, x_tag, y_tag)
                 MeasDyn = self.MeasureDyn_i(tag_id, vel_meas)
                 R_diag = 0.08 + (0.5*tag_dist + 5.0*tag_dist**2)*np.ones(meas_sz)
             else:
-                H_i = self.H_i_func(x, y, np.sin(yaw), np.cos(yaw), yaw_rate, tag_id, x_tag, y_tag)
+                H_i = self.H_i_func(vel_meas, x, y, np.sin(yaw), np.cos(yaw), yaw_rate, tag_id, x_tag, y_tag)
                 H = np.vstack((H, H_i))
                 MeasDyn_i = self.MeasureDyn_i(tag_id, vel_meas)
                 MeasDyn = np.vstack((MeasDyn, MeasDyn_i))
@@ -298,6 +301,11 @@ class ExtendedKalmanFilter:
         K = self.P @ H.T @ np.linalg.inv(H @ self.P @ H.T + R)
 
         # Update state est with measurement
+        print('X shp: ' + str(self.X.shape))
+        print('K shp: ' + str(K.shape))
+        print('z shp: ' + str(z.shape))
+        print('MeasDyn shp: ' + str(MeasDyn.shape))
+        print()
         self.X = self.X + K @ (z - MeasDyn)
 
         # Update error covariance
