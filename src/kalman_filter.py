@@ -256,8 +256,10 @@ class ExtendedKalmanFilter:
         # Update speed and yaw_rate
         w_r_true = self.X[5,0]*w_r + self.X[6,0]*w_r**2 + self.X[7,0]*w_r**3
         w_l_true = self.X[8,0]*w_l + self.X[9,0]*w_l**2 + self.X[10,0]*w_l**3
-        self.X[3,0] = (whl_rad/2)*(w_r_true + w_l_true)         # update speed
-        self.X[4,0] = (whl_rad/base_line)*(w_r_true - w_l_true) # update yaw_rate
+#        self.X[3,0] = (whl_rad/2)*(w_r_true + w_l_true) # original, TODO WhY nOt woRk         # update speed
+        self.X[3,0] = (whl_rad/2)*(w_r + w_l)         # update speed
+#        self.X[4,0] = (whl_rad/base_line)*(w_r_true - w_l_true) # original, update yaw_rate
+        self.X[4,0] = (whl_rad/base_line)*(w_r - w_l) # update yaw_rate
 
         # RK-4 propagation
         k1 = self.ProcessDyn(self.X)
