@@ -79,14 +79,19 @@ class ExtendedKalmanFilter:
     def ProcessTagData(self, tags, detect_time):
         num_tags = len(tags)
         if (num_tags != 0):
+            vel_meas = True
+            meas_sz = 6 # default (x,y,yaw,dx,dy,dyaw)
+            for tag in tags:
+                tag_name = 'tag'+str(tag.tag_id)
+                prev_meas_exist = len(self.prev_tag_data[tag_name]) != 0
+                if (not prev_meas_exist):
+                    meas_sz = 3
+                    vel_meas = False # cannot approximate velocity measurement
             tag_ids = -1*np.ones(num_tags)
-            z = np.zeros((6*num_tags, 1))
+            z = np.zeros((meas_sz*num_tags, 1))
             R_CB = np.array([[0, 0, 1],[-1, 0, 0],[0, -1, 0]]) # rotates vectors from cam frame to body frame
             p_CB = np.array((0.0325, 0, 0)).reshape(-1, 1)     # position of camera frame in body frame
             iter = 0
-            valid_tag_ids = [] # ids for valid measurements
-            vel_meas = True
-            meas_sz = 6 # default (x,y,yaw,dx,dy,dyaw)
 
             for tag in tags:
                 # Init current measurment vector
@@ -109,12 +114,7 @@ class ExtendedKalmanFilter:
 
                 # Velocity and Yaw rate of Tag frame in Body frame
                 tag_name = 'tag'+str(tag.tag_id)
-                prev_meas_exist = len(self.prev_tag_data[tag_name]) != 0
-                if (not prev_meas_exist):
-                    vel_meas = False # cannot approximate velocity measurement
-                    meas_sz = 3
-                    z_i = z_i[0:meas_sz, :]
-                else:
+                if (vel_meas):
                     prev_time = self.prev_tag_data['t']
                     prev_x_TB = self.prev_tag_data[tag_name][0]
                     prev_y_TB = self.prev_tag_data[tag_name][1]
@@ -134,9 +134,6 @@ class ExtendedKalmanFilter:
                     z_i[4,0] = dy_TB
                     z_i[5,0] = dyaw_TB
 
-                # store ids of valid measurements
-                valid_tag_ids.append(tag.tag_id)
-
                 # Update prev_tag_data for curr tag
                 self.prev_tag_data[tag_name] = [p_TB[0,0], p_TB[1,0], yaw_TB]
 
@@ -148,7 +145,7 @@ class ExtendedKalmanFilter:
             # Update prev_tag_data detect time
             self.prev_tag_data['t'] = detect_time
 
-            self.Measurement(z, vel_meas, valid_tag_ids)
+            self.Measurement(z, vel_meas, tag_ids)
 
             # Remove prev_tag_data elements for tag_ids that are not currently visible
             for i in range(6):
