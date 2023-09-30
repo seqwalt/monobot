@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import genfromtxt
 
 class ExtendedKalmanFilter:
     def __init__(self, x, y, yaw):
@@ -6,8 +7,13 @@ class ExtendedKalmanFilter:
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3, x_tag_1, y_tag_1, x_tag_2, y_tag_2, x_tag_3, y_tag_3, x_tag_4, y_tag_4, x_tag_5, y_tag_5
         self.X = np.array((x, y, yaw, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 6.224, -0.793, 0.635, -1.0795, 3.745, 1.676, 1.1684, 2.032, 1.71069, -1.0795)).reshape(-1,1)
         # Initialize covariance matrix
-        X_sz, _ = self.X.shape
-        self.P = np.eye(X_sz)
+        try:
+            self.P = genfromtxt('err_cov.txt', delimiter=',')
+            print(P.shape)
+        except FileNotFoundError:
+            print("Couldn't find covariance matrix file, using identity")
+            X_sz, _ = self.X.shape
+            self.P = np.eye(X_sz)
         # Tag data history
         self.prev_tag_data = {'t':[], 'tag0':[], 'tag1':[], 'tag2':[], 'tag3':[], 'tag4':[], 'tag5':[]}
         # Tag yaw values (incremented periodically to handle yaw wrapping)
