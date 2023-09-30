@@ -158,8 +158,10 @@ except KeyboardInterrupt:
     # shut off servos
     kit.continuous_servo[7].throttle = 0
     kit.continuous_servo[8].throttle = 0
-    # Save EKF states and tag detections
+    # Save EKF states, EKF covariance matrix, and tag detections
     np.savetxt("logs/traj.txt", Traj, fmt='%.5f', delimiter=",")
+    P_last = EKF.GetEKFCov()
+    np.savetxt("logs/err_cov.txt", P_last, fmt='%.5f', delimiter=",")
     for i in range(6):
         np.savetxt("logs/tag"+str(i)+".txt", Tags['tag'+str(i)], fmt='%.5f', delimiter=",")
     # Stop video capture
