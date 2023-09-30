@@ -298,11 +298,6 @@ class ExtendedKalmanFilter:
         K = self.P @ H.T @ np.linalg.inv(H @ self.P @ H.T + R)
 
         # Update state est with measurement
-        print('X shp: ' + str(self.X.shape))
-        print('K shp: ' + str(K.shape))
-        print('z shp: ' + str(z.shape))
-        print('MeasDyn shp: ' + str(MeasDyn.shape))
-        print()
         self.X = self.X + K @ (z - MeasDyn)
 
         # Update error covariance

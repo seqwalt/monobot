@@ -151,8 +151,7 @@ try:
         if (not yaw_rate == kp.yaw_rate):
             yaw_rate = kp.yaw_rate
             if (not kp.command == None):
-                print('\n'+kp.command)
-                print('yaw rate: ' + str(yaw_rate))
+                print(kp.command)
 
 except KeyboardInterrupt:
     # shut off servos
