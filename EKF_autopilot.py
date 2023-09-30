@@ -34,7 +34,7 @@ def video_feed():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 @app.route('/plot_feed')
 def plot_feed():
-    """Plot streaming route"""
+    """Plotly streaming route"""
     return Response(plt_stream.gen(),
                     content_type='text/event-stream')
 # run Flask app in a process
