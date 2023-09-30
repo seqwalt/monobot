@@ -4,7 +4,7 @@ class ExtendedKalmanFilter:
     def __init__(self, x, y, yaw):
         # Initialize state
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3, x_tag_1, y_tag_1, x_tag_2, y_tag_2, x_tag_3, y_tag_3, x_tag_4, y_tag_4, x_tag_5, y_tag_5
-        self.X = np.array((x, y, yaw, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 6.40969, -0.6223, 0.635, -1.0795, 3.683, 1.9304, 1.1684, 2.032, 1.71069, -1.0795)).reshape(-1,1)
+        self.X = np.array((x, y, yaw, 0, 0, 1.0, 0, 0, 1.0, 0, 0, 6.224, -0.793, 0.635, -1.0795, 3.745, 1.676, 1.1684, 2.032, 1.71069, -1.0795)).reshape(-1,1)
         # Initialize covariance matrix
         X_sz, _ = self.X.shape
         self.P = np.eye(X_sz)
@@ -35,63 +35,31 @@ class ExtendedKalmanFilter:
 
     def Q_func(self):
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3
-        Q_diag = np.array([0.01, 0.01, 0.01, 0.0, 0.0, 0.0001, 0.0, 0.0, 0.0001, 0.0, 0.0])
+        Q_diag = np.array([0.01, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         return np.diag(Q_diag)
 
     # H_i matrix for tag i
-    def H_i_func(self, x, y, sin_yaw, cos_yaw, yaw_rate, tag_id, x_tag_i, y_tag_i):
-        # tag 0 (origin)
-        if (tag_id == 0):
-            H_i = np.array([[-cos_yaw, -sin_yaw, x*sin_yaw - y*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [sin_yaw, -cos_yaw, x*cos_yaw + y*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [yaw_rate*sin_yaw, -yaw_rate*cos_yaw, yaw_rate*(x*cos_yaw + y*sin_yaw), -1, x*sin_yaw - y*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [yaw_rate*cos_yaw, yaw_rate*sin_yaw, -yaw_rate*(x*sin_yaw - y*cos_yaw), 0, x*cos_yaw + y*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        # tag 1
-        elif (tag_id == 1):
-            H_i = np.array([[-cos_yaw, -sin_yaw, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, cos_yaw, sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [sin_yaw, -cos_yaw, (x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, -sin_yaw, cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [yaw_rate*sin_yaw, -yaw_rate*cos_yaw, yaw_rate*((x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw), -1, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, -yaw_rate*sin_yaw, yaw_rate*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [yaw_rate*cos_yaw, yaw_rate*sin_yaw, -yaw_rate*(-(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw), 0, -(-x + x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, -yaw_rate*cos_yaw, -yaw_rate*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        # tag 2
-        elif (tag_id == 2):
-            H_i = np.array([[-cos_yaw, -sin_yaw, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, cos_yaw, sin_yaw, 0, 0, 0, 0, 0, 0],
-                            [sin_yaw, -cos_yaw, (x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -sin_yaw, cos_yaw, 0, 0, 0, 0, 0, 0],
-                            [0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [yaw_rate*sin_yaw, -yaw_rate*cos_yaw, yaw_rate*((x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw), -1, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, -yaw_rate*sin_yaw, yaw_rate*cos_yaw, 0, 0, 0, 0, 0, 0],
-                            [yaw_rate*cos_yaw, yaw_rate*sin_yaw, -yaw_rate*(-(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw), 0, -(-x + x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, -yaw_rate*cos_yaw, -yaw_rate*sin_yaw, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        # tag 3
-        elif (tag_id == 3):
-            H_i = np.array([[-cos_yaw, -sin_yaw, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, cos_yaw, sin_yaw, 0, 0, 0, 0],
-                            [sin_yaw, -cos_yaw, (x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -sin_yaw, cos_yaw, 0, 0, 0, 0],
-                            [0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [yaw_rate*sin_yaw, -yaw_rate*cos_yaw, yaw_rate*((x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw), -1, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -yaw_rate*sin_yaw, yaw_rate*cos_yaw, 0, 0, 0, 0],
-                            [yaw_rate*cos_yaw, yaw_rate*sin_yaw, -yaw_rate*(-(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw), 0, -(-x + x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -yaw_rate*cos_yaw, -yaw_rate*sin_yaw, 0, 0, 0, 0],
-                            [0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        # tag 4
-        elif (tag_id == 4):
-            H_i = np.array([[-cos_yaw, -sin_yaw, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, cos_yaw, sin_yaw, 0, 0],
-                            [sin_yaw, -cos_yaw, (x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -sin_yaw, cos_yaw, 0, 0],
-                            [0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [yaw_rate*sin_yaw, -yaw_rate*cos_yaw, yaw_rate*((x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw), -1, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -yaw_rate*sin_yaw, yaw_rate*cos_yaw, 0, 0],
-                            [yaw_rate*cos_yaw, yaw_rate*sin_yaw, -yaw_rate*(-(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw), 0, -(-x + x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -yaw_rate*cos_yaw, -yaw_rate*sin_yaw, 0, 0],
-                            [0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        # tag 5
-        elif (tag_id == 5):
-            H_i = np.array([[-cos_yaw, -sin_yaw, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, cos_yaw, sin_yaw],
-                            [sin_yaw, -cos_yaw, (x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -sin_yaw, cos_yaw],
-                            [0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [yaw_rate*sin_yaw, -yaw_rate*cos_yaw, yaw_rate*((x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw), -1, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -yaw_rate*sin_yaw, yaw_rate*cos_yaw],
-                            [yaw_rate*cos_yaw, yaw_rate*sin_yaw, -yaw_rate*(-(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw), 0, -(-x + x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -yaw_rate*cos_yaw, -yaw_rate*sin_yaw],
-                            [0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        else:
-            print("Invalid tag number.")
-            exit()
-        return H_i
+    def H_i_func(self, inc_vel_meas, x, y, sin_yaw, cos_yaw, yaw_rate, tag_id, x_tag_i, y_tag_i):
+        H_i = np.array([[-cos_yaw, -sin_yaw, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [sin_yaw, -cos_yaw, (x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [yaw_rate*sin_yaw, -yaw_rate*cos_yaw, yaw_rate*((x - x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw), -1, -(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [yaw_rate*cos_yaw, yaw_rate*sin_yaw, -yaw_rate*(-(-x + x_tag_i)*sin_yaw + (-y + y_tag_i)*cos_yaw), 0, -(-x + x_tag_i)*cos_yaw - (-y + y_tag_i)*sin_yaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+        if (tag_id != 0):
+            H_i[0,9 + 2*tag_id] = cos_yaw
+            H_i[0,10 + 2*tag_id] = sin_yaw
+            H_i[1,9 + 2*tag_id] = -sin_yaw
+            H_i[1,10 + 2*tag_id] = cos_yaw
+
+            H_i[3,9 + 2*tag_id] = -yaw_rate*sin_yaw
+            H_i[3,10 + 2*tag_id] = yaw_rate*cos_yaw
+            H_i[4,9 + 2*tag_id] = -yaw_rate*cos_yaw
+            H_i[4,10 + 2*tag_id] = -yaw_rate*sin_yaw
+        if (not inc_vel_meas):
+            # Dont include velocity measurement
+            H_i = H_i[0:3,:]
+        return
 
     # Get current EKF state
     def GetEKFState(self):
@@ -111,7 +79,7 @@ class ExtendedKalmanFilter:
             p_CB = np.array((0.0325, 0, 0)).reshape(-1, 1)     # position of camera frame in body frame
             iter = 0
             valid_tag_ids = [] # ids for valid measurements
-            valid_measurements = True
+            vel_meas = True
 
             for tag in tags:
                 # Init current measurment vector
@@ -136,8 +104,7 @@ class ExtendedKalmanFilter:
                 tag_name = 'tag'+str(tag.tag_id)
                 prev_meas_exist = len(self.prev_tag_data[tag_name]) != 0
                 if (not prev_meas_exist):
-                    print('Rejected measurment due no velocity measured')
-                    valid_measurements = False
+                    vel_meas = False # cannot approximate velocity measurement
                 else:
                     prev_time = self.prev_tag_data['t']
                     prev_x_TB = self.prev_tag_data[tag_name][0]
@@ -158,8 +125,8 @@ class ExtendedKalmanFilter:
                     z_i[4,0] = dy_TB
                     z_i[5,0] = dyaw_TB
 
-                    # store ids of valid measurements
-                    valid_tag_ids.append(tag.tag_id)
+                # store ids of valid measurements
+                valid_tag_ids.append(tag.tag_id)
 
                 # Update prev_tag_data for curr tag
                 self.prev_tag_data[tag_name] = [p_TB[0,0], p_TB[1,0], yaw_TB]
@@ -172,8 +139,7 @@ class ExtendedKalmanFilter:
             # Update prev_tag_data detect time
             self.prev_tag_data['t'] = detect_time
 
-            if (valid_measurements):
-                self.Measurement(z, valid_tag_ids)
+            self.Measurement(z, vel_meas, valid_tag_ids)
 
             # Remove prev_tag_data elements for tag_ids that are not currently visible
             for i in range(6):
@@ -197,7 +163,7 @@ class ExtendedKalmanFilter:
         dX = np.array((dx, dy, dyaw, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)).reshape(-1,1)
         return dX
 
-    def MeasureDyn_i(self, tag_id_):
+    def MeasureDyn_i(self, tag_id_, vel_meas):
         tag_id = int(tag_id_)
         if (tag_id == 0):
             x_tag = 0
@@ -245,8 +211,11 @@ class ExtendedKalmanFilter:
         yaw_tag_body  = yaw_tag - yaw
         dp_tag_body   = np.array([yaw_rate*(cos*(y_tag - y) - sin*(x_tag - x)) - speed, -yaw_rate*(sin*(y_tag - y) + cos*(x_tag - x))]).reshape(-1,1)
         dyaw_tag_body = -yaw_rate
-        h = np.vstack((p_tag_body, yaw_tag_body, dp_tag_body, dyaw_tag_body))
 
+        if (vel_meas):
+            h = np.vstack((p_tag_body, yaw_tag_body, dp_tag_body, dyaw_tag_body))
+        else:
+            h = np.vstack((p_tag_body, yaw_tag_body))
         return h
 
     def Propagate(self, w_r, w_l, dt):
@@ -278,7 +247,11 @@ class ExtendedKalmanFilter:
         self.P = A @ self.P @ A.T + W @ Q @ W.T
 
     # input: measurements, visible tag numbers
-    def Measurement(self, z, tag_ids):
+    def Measurement(self, z, vel_meas, tag_ids):
+        meas_sz = 3 # x,y,yaw
+        if (vel_meas):
+            meas_sz = 6 # x,y,yaw,dx,dy,dyaw
+
         # Get some states
         x = self.X[0,0]
         y = self.X[1,0]
@@ -296,18 +269,18 @@ class ExtendedKalmanFilter:
             else:
                 x_tag = self.X[9 + 2*tag_id,0]
                 y_tag = self.X[10 + 2*tag_id,0]
-            tag_dist = np.sqrt(z[0 + 6*iter,0]**2 + z[1 + 6*iter,0]**2)
+            tag_dist = np.sqrt(z[0 + meas_sz*iter,0]**2 + z[1 + meas_sz*iter,0]**2)
             if (tag_id == tag_ids[0]):
                 # first iteration
                 H = self.H_i_func(x, y, np.sin(yaw), np.cos(yaw), yaw_rate, tag_id, x_tag, y_tag)
-                MeasDyn = self.MeasureDyn_i(tag_id)
-                R_diag = 0.08 + (0.5*tag_dist + 5.0*tag_dist**2)*np.ones(6)
+                MeasDyn = self.MeasureDyn_i(tag_id, vel_meas)
+                R_diag = 0.08 + (0.5*tag_dist + 5.0*tag_dist**2)*np.ones(meas_sz)
             else:
                 H_i = self.H_i_func(x, y, np.sin(yaw), np.cos(yaw), yaw_rate, tag_id, x_tag, y_tag)
                 H = np.vstack((H, H_i))
-                MeasDyn_i = self.MeasureDyn_i(tag_id)
+                MeasDyn_i = self.MeasureDyn_i(tag_id, vel_meas)
                 MeasDyn = np.vstack((MeasDyn, MeasDyn_i))
-                R_diag_i = 0.08 + (0.5*tag_dist + 5.0*tag_dist**2)*np.ones(6)
+                R_diag_i = 0.08 + (0.5*tag_dist + 5.0*tag_dist**2)*np.ones(meas_sz)
                 R_diag = np.hstack((R_diag, R_diag_i))
             iter += 1
 
