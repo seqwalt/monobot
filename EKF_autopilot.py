@@ -50,7 +50,7 @@ b = 1.1557
 c = 3.5814
 d = 1.8034
 s = 0.97    # trajectory corner sharpness, orig: 0.97
-T = 60      # total trajectory time
+T = 80      # total trajectory time (s)
 def x_d(t):
     return a + c*( (1/(2*s))*sqrt(2+2*s*sqrt(2)*cos((pi + 2*pi*t/T))+s*s*cos(2*(pi + 2*pi*t/T))) - (1/(2*s))*sqrt(2-2*s*sqrt(2)*cos((pi + 2*pi*t/T))+s*s*cos(2*(pi + 2*pi*t/T))) )
 def y_d(t):
@@ -72,10 +72,10 @@ def yaw_rate_d(t):
 
 # ----- Dynamic Feedback Linearization ----- #
 # See "Control of Wheeled Mobile Robots: An Experimental Overview" Sec. 5. https://web2.qatar.cmu.edu/~gdicaro/16311-Fall17/slides/control-theory-for-robotics.pdf
-kpx = 3.0 # control gains
-kdx = 1.0
-kpy = 3.0
-kdy = 1.0
+kpx = 1.0 # control gains
+kdx = 0.5
+kpy = 1.0
+kdy = 0.5
 def u1(t, x, dx):
     return ddx_d(t) + kpx*(x_d(t) - x) + kdx*(dx_d(t) - dx)
 def u2(t, y, dy):
@@ -115,6 +115,9 @@ while (not detect_tag0):
 print('Found tag0!')
 EKF = ExtendedKalmanFilter(x_init, y_init, yaw_init)
 Traj = EKF.GetEKFState().T
+
+tag_row = np.empty((0,13), float) # time, R[0,0], ..., R[2,2], t1, t2, t3
+Tags = {'tag0':tag_row, 'tag1':tag_row, 'tag2':tag_row, 'tag3':tag_row, 'tag4':tag_row, 'tag5':tag_row}
 
 # Init timing
 prev_t = temp_t = 0
@@ -158,12 +161,13 @@ try:
         scl = (1/0.45)
         scl_yaw_l = 2*speed/(base_line*np.pi/3)*0.9*0.7
         scl_yaw_r = 2*speed/(base_line*np.pi/3)*0.8*0.68
-        left_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)  # original left wheel rate, provided to EKF
-        left_rate_adjusted = scl*(2*speed - scl_yaw_l*yaw_rate*base_line)/(2*whl_rad)  # left wheel rate applied to system
-        right_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad) # original right wheel rate, provided to EKF
-        right_rate_adjusted = scl*(2*speed + scl_yaw_r*yaw_rate*base_line)/(2*whl_rad) # right wheel rate applied to system
+        left_rate = np.clip((2*speed - yaw_rate*base_line)/(2*whl_rad), 0, 14.1)  # original left wheel rate, provided to EKF
+        left_rate_adjusted = np.clip(scl*(2*speed - scl_yaw_l*yaw_rate*base_line)/(2*whl_rad), 0, 14.1)  # left wheel rate applied to system
+        right_rate = np.clip((2*speed + yaw_rate*base_line)/(2*whl_rad), 0, 14.1) # original right wheel rate, provided to EKF
+        right_rate_adjusted = np.clip(scl*(2*speed + scl_yaw_r*yaw_rate*base_line)/(2*whl_rad), 0, 14.1) # right wheel rate applied to system
         left_throttle = np.clip(r2t(left_rate_adjusted), 0, 1)
         right_throttle = -np.clip(r2t(right_rate_adjusted), 0, 1) # (-) due to flipped motor
+
         kit.continuous_servo[7].throttle = left_throttle  # left wheel
         kit.continuous_servo[8].throttle = right_throttle # right wheel
 
@@ -183,6 +187,8 @@ try:
         speed = speed + dt*accel
         accel = u1_*cos(yaw_est) + u2_*sin(yaw_est)
         yaw_rate = (u2_*cos(yaw_est) - u1_*sin(yaw_est))/speed
+        print("speed: " + str(speed))
+        print("yaw_rate: " + str(yaw_rate))
 
 except KeyboardInterrupt:
     # shut off servos
