@@ -35,7 +35,7 @@ class ExtendedKalmanFilter:
 
     def Q_func(self):
         # x, y, yaw, speed, yaw_rate, cr1, cr2, cr3, cl1, cl2, cl3
-        Q_diag = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 2.0, 0.0, 0.0, 2.0, 0.0, 0.0])
+        Q_diag = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.001, 0.0, 0.0, 0.001, 0.0, 0.0])
         return np.diag(Q_diag)
 
     # H_i matrix for tag i
