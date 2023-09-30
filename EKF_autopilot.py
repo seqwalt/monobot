@@ -130,19 +130,40 @@ try:
         dt = curr_t - prev_t
         prev_t = curr_t
 
-        # EKF Steps
-        _, img = camera.read()    # Read current camera frame
-        tags, detect_time, gray_img = td.DetectTags(img) # Detect AprilTag
-        EKF.ProcessTagData(tags, detect_time)  # Load tag pose data into EKF
         EKF.Propagate(right_rate, left_rate, dt) # Tell state estimator control inputs
 
+        # EKF Measurement/Printing/Logging
+        if (curr_t - temp_t > 1.0/print_hz):
+            temp_t = curr_t
+            # EKF Measurement Step
+            _, img = camera.read()    # Read current camera frame
+            tags, detect_time, gray_img = td.DetectTags(img) # Detect AprilTag
+            EKF.ProcessTagData(tags, detect_time)  # Load tag pose data into EKF
+            # Save trajectory for analysis
+            Traj = np.vstack((Traj, X_est.T))
+            # Save tags for analysis
+            for tag in tags:
+                tag_id = tag.tag_id
+                pose_t = tag.pose_t.reshape(-1, 1)
+                pose_R = tag.pose_R
+                pose_flat = np.hstack(( tag.pose_R.reshape(1,-1), tag.pose_t.reshape(1,-1) ))[0] # recover R with (pose_flat[0:9]).reshape(3,3) and t with (pose_flat[9:]).reshape(-1,1)
+                tag_name = 'tag' + str(tag_id)
+                Tags[tag_name] = np.vstack((Tags[tag_name], np.hstack((detect_time, pose_flat)) ))
+            # Update plot stream
+            plt_stream.set_plot(X_est[0,0], X_est[1,0], X_est[2,0])
+            # Update camera stream
+            tag_stream.set_tags(tags, gray_img)
+
         # Apply control to system
-        left_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)  # left wheel rate
-        #print("R:"+str(left_rate))
-        right_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad) # right wheel rate
-        left_throttle = r2t(np.clip(left_rate, 0, 14.14))
-        #print("T:"+str(left_throttle))
-        right_throttle = -r2t(np.clip(right_rate, 0, 14)) # (-) due to flipped motor
+        scl = (1/0.45)
+        scl_yaw_l = 2*speed/(base_line*np.pi/3)*0.9*0.7
+        scl_yaw_r = 2*speed/(base_line*np.pi/3)*0.8*0.68
+        left_rate = (2*speed - yaw_rate*base_line)/(2*whl_rad)  # original left wheel rate, provided to EKF
+        left_rate_adjusted = scl*(2*speed - scl_yaw_l*yaw_rate*base_line)/(2*whl_rad)  # left wheel rate applied to system
+        right_rate = (2*speed + yaw_rate*base_line)/(2*whl_rad) # original right wheel rate, provided to EKF
+        right_rate_adjusted = scl*(2*speed + scl_yaw_r*yaw_rate*base_line)/(2*whl_rad) # right wheel rate applied to system
+        left_throttle = np.clip(r2t(left_rate_adjusted), 0, 1)
+        right_throttle = -np.clip(r2t(right_rate_adjusted), 0, 1) # (-) due to flipped motor
         kit.continuous_servo[7].throttle = left_throttle  # left wheel
         kit.continuous_servo[8].throttle = right_throttle # right wheel
 
@@ -163,23 +184,16 @@ try:
         accel = u1_*cos(yaw_est) + u2_*sin(yaw_est)
         yaw_rate = (u2_*cos(yaw_est) - u1_*sin(yaw_est))/speed
 
-        # Printing
-        if (curr_t - temp_t > 1.0/print_hz):
-            temp_t = curr_t
-            #print(dt)
-            # Save to trajectory for analysis
-            Traj = np.vstack((Traj, X_est.T))
-            # Update plot stream
-            plt_stream.set_plot(x_est, y_est, yaw_est)
-            # Update camera stream
-            tag_stream.set_tags(tags, gray_img)
-
 except KeyboardInterrupt:
     # shut off servos
     kit.continuous_servo[7].throttle = 0
     kit.continuous_servo[8].throttle = 0
     # Save last EKF state
     np.savetxt("traj.txt", Traj, fmt='%.5f', delimiter=",")
+    P_last = EKF.GetEKFCov()
+    np.savetxt("logs/err_cov.txt", P_last, fmt='%.5f', delimiter=",")
+    for i in range(6):
+        np.savetxt("logs/tag"+str(i)+".txt", Tags['tag'+str(i)], fmt='%.5f', delimiter=",")
     # Stop video capture
     camera.release()
     sys.exit()

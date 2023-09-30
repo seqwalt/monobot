@@ -106,11 +106,9 @@ try:
         # EKF Propagation Step
         EKF.Propagate(right_rate, left_rate, dt) # Tell state estimator control inputs
 
-        # Printing/Logging/EKF Measurement
+        # EKF Measurement/Printing/Logging
         if (curr_t - temp_t > 1.0/print_hz):
             temp_t = curr_t
-            #print("Left wheel (rad/s): " + str(left_rate))
-            #print(dt)
             # EKF Measurement Step
             _, img = camera.read()    # Read current camera frame
             tags, detect_time, gray_img = td.DetectTags(img) # Detect AprilTag
