@@ -1,2 +1,2 @@
 # monobot
-Differential-drive robot with a monocular camera, used for AprilTag EKF SLAM.
+Code for monocular differential-drive robot. An EKF is implemented to fuse AprilTag measurements with wheel speed commands.
